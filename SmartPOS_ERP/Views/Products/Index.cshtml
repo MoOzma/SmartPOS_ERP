@@ -116,11 +116,11 @@
             <button type="button" class="btn-close btn-close-white" onclick="closeWeightModal()"></button>
         </div>
 
-        <p class="text-muted small">سعر الكيلو الحالي: <span id="mProductPrice" class="text-warning fw-bold">0.00</span> ج.م</p>
+        <p class="text-white small">سعر الكيلو الحالي: <span id="mProductPrice" class="text-warning fw-bold">0.00</span> ج.م</p>
 
         <div class="row g-3">
             <div class="col-12">
-                <label class="form-label text-light">الوزن المطلوب (بالكيلو)</label>
+                <label class="form-label text-white">الوزن المطلوب (بالكيلو)</label>
                 <div class="input-group">
                     <input type="number" id="mInputWeight" class="form-control bg-black text-info border-secondary fs-3 text-center" step="0.001" placeholder="0.000">
                     <span class="input-group-text bg-secondary text-white">كجم</span>
@@ -151,9 +151,9 @@
         let currentProduct = null;
         let cart = [];
 
-        // دالة الفحص الرئيسية
+        // 1. دالة الفحص الرئيسية (التي يتم استدعاؤها عند الضغط على المنتج)
         function validateProductSelection(id, name, price, unit) {
-            // الآن نستخدم النص الصريح "Kilo" كما في الموديل
+            // التحقق من النص القادم من قاعدة البيانات
             if (unit === "Kilo") {
                 openWeightModal(id, name, price);
             } else {
@@ -161,32 +161,170 @@
             }
         }
 
-        function openWeightModal(id, name, price) {
-            currentProduct = { id, name, price: parseFloat(price) };
-            document.getElementById('modalProductName').innerText = name;
-            document.getElementById('modalProductPrice').innerText = price;
+        // 2. دوال النافذة المنبثقة (Modal)
+                function openWeightModal(id, name, price) {
+            currentProduct = { id, name, price: parseFloat(price), unit: "Kilo" };
+            // تعديل الأسماء لتطابق الـ HTML الموجود في ملفك
+            document.getElementById('mProductName').innerText = name;
+            document.getElementById('mProductPrice').innerText = price;
 
-            // تصفير الخانات وإظهار المودال
-            document.getElementById('weightInput').value = '';
-            document.getElementById('moneyInput').value = '';
+            document.getElementById('mInputWeight').value = '';
+            document.getElementById('mInputMoney').value = '';
             document.getElementById('weightModal').style.display = 'flex';
+
+            setTimeout(() => document.getElementById('mInputWeight').focus(), 100);
         }
 
         function closeWeightModal() {
             document.getElementById('weightModal').style.display = 'none';
+            currentProduct = null;
         }
 
-        // دالة الإضافة الفعلية للسلة
+        // 3. الربط الذكي (الحساب التلقائي داخل النافذة)
+                document.getElementById('mInputWeight').addEventListener('input', function() {
+            if (currentProduct) {
+                let weight = parseFloat(this.value) || 0;
+                document.getElementById('mInputMoney').value = (weight * currentProduct.price).toFixed(2);
+            }
+        });
+
+        document.getElementById('mInputMoney').addEventListener('input', function() {
+            if (currentProduct) {
+                let money = parseFloat(this.value) || 0;
+                document.getElementById('mInputWeight').value = (money / currentProduct.price).toFixed(3);
+            }
+        });
+
+                function confirmWeightAddition() {
+            // التأكد من استخدام المعرف الصحيح الموجود في الـ HTML الخاص بك
+            let qtyInput = document.getElementById('mInputWeight');
+            let qty = parseFloat(qtyInput.value);
+
+            if (qty > 0 && currentProduct) {
+                // إضافة المنتج بالوزن المكتوب
+                addToCart(currentProduct.id, currentProduct.name, currentProduct.price, qty, "Kilo");
+                closeWeightModal();
+
+                // تصفير الحقل للعملية القادمة
+                qtyInput.value = '';
+            } else {
+                alert("يرجى إدخال وزن صحيح أولاً");
+            }
+        }
+
+        // 4. دالة الإضافة الفعلية للسلة
         function addToCart(id, name, price, qty, unit) {
-            let existing = cart.find(i => i.id === id.toString());
-            if (existing && unit !== "Kilo") {
+            let productId = id.toString();
+            let existing = cart.find(i => i.id === productId);
+
+            if (existing && unit === "Piece") {
                 existing.qty += 1;
             } else {
-                cart.push({ id: id.toString(), name, price: parseFloat(price), qty: parseFloat(qty), unit });
+                // إضافة سجل جديد (يسمح بتعدد سجلات الكيلو لبيانات مختلفة لنفس المنتج)
+                cart.push({
+                    id: productId,
+                    name: name,
+                    price: parseFloat(price),
+                    qty: parseFloat(qty),
+                    unit: unit
+                });
             }
             renderCart();
         }
 
-        // أضف بقية دوال renderCart و checkout هنا...
+        // 5. دالة عرض السلة وتحديث الحسابات
+        function renderCart() {
+            const listContainer = document.getElementById('cartItemsList');
+            const emptyMsg = document.getElementById('emptyCartMsg');
+            if (!listContainer) return;
+
+            listContainer.innerHTML = '';
+            let subtotal = 0;
+
+            if (cart.length === 0) {
+                if (emptyMsg) emptyMsg.style.display = 'block';
+            } else {
+                if (emptyMsg) emptyMsg.style.display = 'none';
+                cart.forEach((item, index) => {
+                    let itemTotal = item.price * item.qty;
+                    subtotal += itemTotal;
+
+                    let unitLabel = (item.unit === "Kilo") ? "كجم" : "قطعة";
+                    let qtyDisplay = (item.unit === "Kilo") ? item.qty.toFixed(3) : item.qty;
+
+                    const itemRow = document.createElement('div');
+                    itemRow.className = "d-flex justify-content-between align-items-center mb-2 bg-dark p-2 rounded border border-secondary text-white";
+                    itemRow.innerHTML = `
+                        <div style="flex-grow: 1;">
+                            <div class="fw-bold">${item.name}</div>
+                            <small class="text-info">${qtyDisplay} ${unitLabel} × ${item.price.toFixed(2)}</small>
+                        </div>
+                        <div class="text-warning mx-2 fw-bold">${itemTotal.toFixed(2)}</div>
+                        <button class="btn btn-sm btn-outline-danger border-0" onclick="removeFromCart(${index})">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    `;
+                    listContainer.appendChild(itemRow);
+                });
+            }
+
+            // تحديث الإجماليات (الضريبة 14% حسب الموديل)
+            let tax = subtotal * 0.14;
+            let total = subtotal + tax;
+            document.getElementById('subtotal').innerText = subtotal.toFixed(2);
+            document.getElementById('tax').innerText = tax.toFixed(2);
+            document.getElementById('total').innerText = total.toFixed(2);
+        }
+
+        function removeFromCart(index) {
+            cart.splice(index, 1);
+            renderCart();
+        }
+
+        // 6. إنهاء العملية وإرسال البيانات للسيرفر
+        function checkout() {
+            if (cart.length === 0) return;
+
+            let orderData = {
+                totalAmount: parseFloat(document.getElementById('total').innerText),
+                taxAmount: parseFloat(document.getElementById('tax').innerText),
+                orderDetails: cart.map(item => ({
+                    productId: parseInt(item.id),
+                    quantity: item.qty,
+                    unitPrice: item.price
+                }))
+            };
+
+            fetch('/Products/SaveOrder', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(orderData)
+            }).then(response => {
+                if (response.ok) {
+                    alert("تم حفظ الفاتورة بنجاح!");
+                    cart = [];
+                    renderCart();
+                    location.reload();
+                } else {
+                    alert("فشلت عملية الحفظ، تأكد من الاتصال بالسيرفر");
+                }
+            });
+        }
+
+        // 7. مستمع الباركود (بدون إخفاء المنتجات)
+        document.getElementById('searchInput').addEventListener('input', function (e) {
+            let val = e.target.value.trim();
+            if (val === "") return;
+
+            @foreach (var item in Model)
+            {
+                    <text>
+                    if (val === "@item.Barcode") {
+                        validateProductSelection('@item.Id', '@item.Name', '@item.SalePrice', '@item.Unit');
+                        e.target.value = '';
+                    }
+                    </text>
+            }
+        });
     </script>
 }
