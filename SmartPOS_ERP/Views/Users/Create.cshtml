@@ -1,0 +1,27 @@
+﻿@model SmartPOS_ERP.Models.User
+
+<div class="container mt-5">
+    <div class="card bg-dark text-white border-info shadow" style="max-width: 500px; margin: auto;">
+        <div class="card-header bg-info text-dark fw-bold text-center">إضافة مستخدم جديد</div>
+        <div class="card-body">
+            <form asp-action="Create" method="post">
+                <div class="mb-3">
+                    <label class="form-label">اسم المستخدم</label>
+                    <input asp-for="Username" class="form-control bg-secondary text-white border-0" required />
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">كلمة المرور</label>
+                    <input asp-for="Password" type="password" class="form-control bg-secondary text-white border-0" required />
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">الصلاحية</label>
+                    <select asp-for="Role" class="form-select bg-secondary text-white border-0">
+                        <option value="Admin">مدير</option>
+                        <option value="Cashier">كاشير</option>
+                    </select>
+                </div>
+                <button type="submit" class="btn btn-info w-100 fw-bold">حفظ المستخدم المشفر</button>
+            </form>
+        </div>
+    </div>
+</div>

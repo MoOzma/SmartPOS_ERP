@@ -1,0 +1,39 @@
+﻿@model IEnumerable<SmartPOS_ERP.Models.User>
+
+<div class="container mt-5 text-white">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2>إدارة الموظفين</h2>
+        <a asp-action="Create" class="btn btn-info">+ إضافة موظف جديد</a>
+    </div>
+
+    <table class="table table-dark table-hover">
+        <thead>
+            <tr>
+                <th>اسم المستخدم</th>
+                <th>الصلاحية</th>
+                <th>الإجراءات</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var user in Model)
+            {
+                <tr>
+                    <td>@user.Username</td>
+                    <td>
+                        <span class="badge @(user.Role == "Admin" ? "bg-danger" : "bg-success")">
+                            @user.Role
+                        </span>
+                    </td>
+                    <td>
+                        @if (user.Username != "admin")
+                        {
+                            <a asp-action="Delete" asp-route-id="@user.Id" class="btn btn-sm btn-outline-danger"
+                               onclick="return confirm('هل أنت متأكد من حذف هذا الموظف؟')">حذف</a>
+                        }
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+    <a asp-controller="Products" asp-action="Index" class="btn btn-secondary">العودة للرئيسية</a>
+</div>
