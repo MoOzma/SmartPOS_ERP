@@ -33,6 +33,7 @@
                 <input asp-for="SalePrice" class="form-control" />
                 <span asp-validation-for="SalePrice" class="text-danger"></span>
             </div>
+           
             <div class="form-group">
                 <label asp-for="TaxRate" class="control-label"></label>
                 <input asp-for="TaxRate" class="form-control" />
@@ -57,6 +58,15 @@
                 <label asp-for="ImagePath" class="control-label"></label>
                 <input asp-for="ImagePath" class="form-control" />
                 <span asp-validation-for="ImagePath" class="text-danger"></span>
+            </div>
+
+            <div class="col-md-4 mb-3">
+                <label class="form-label text-white">نوع وحدة البيع</label>
+                <select asp-for="Unit" class="form-select bg-dark text-white border-secondary rounded-pill px-3">
+                    <option value="">-- اختر النوع --</option>
+                    <option value="Piece">بالقطعة (عدد)</option>
+                    <option value="Kilo">بالكيلو (ميزان/جرامات)</option>
+                </select>
             </div>
             <div class="form-group">
                 <input type="submit" value="Save" class="btn btn-primary" />

@@ -55,7 +55,7 @@ namespace SmartPOS_ERP.Controllers
         // For more details, see http://go.microsoft.com/fwlink/?LinkId=317598.
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Create([Bind("Id,Name,Barcode,CostPrice,SalePrice,TaxRate,TrackInventory,StockQuantity,ReorderLevel,ImagePath")] Product product)
+        public async Task<IActionResult> Create([Bind("Id,Name,Barcode,CostPrice,SalePrice,TaxRate,TrackInventory,StockQuantity,Unit,ReorderLevel,ImagePath")] Product product)
         {
             if (ModelState.IsValid)
             {
@@ -94,7 +94,7 @@ namespace SmartPOS_ERP.Controllers
         // For more details, see http://go.microsoft.com/fwlink/?LinkId=317598.
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Edit(int id, [Bind("Id,Name,Barcode,CostPrice,SalePrice,TaxRate,TrackInventory,StockQuantity,ReorderLevel,ImagePath")] Product product)
+        public async Task<IActionResult> Edit(int id, [Bind("Id,Name,Barcode,CostPrice,SalePrice,TaxRate,TrackInventory,StockQuantity,ReorderLevel,Unit,ImagePath")] Product product)
         {
             if (id != product.Id)
             {

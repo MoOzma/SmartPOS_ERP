@@ -3,7 +3,6 @@ using System.ComponentModel.DataAnnotations.Schema;
 
 namespace SmartPOS_ERP.Models
 {
-    public enum UnitType { Piece, Kilo }
     public class Product
     {
         [Key]
@@ -11,7 +10,7 @@ namespace SmartPOS_ERP.Models
 
         [Required(ErrorMessage = "اسم المنتج مطلوب")]
         public string Name { get; set; }
-        public UnitType Unit { get; set; } // قطعة أو كيلو
+       
         public string? Barcode { get; set; }
 
         // --- الإضافات الضرورية للتقارير والأرباح ---
@@ -36,6 +35,8 @@ namespace SmartPOS_ERP.Models
 
         [Display(Name = "حد إعادة الطلب")]
         public int ReorderLevel { get; set; } // ينبهك النظام عندما توشك البضاعة على النفاذ
+        
+        public string Unit { get; set; } 
 
 
         public string? ImagePath { get; set; }
