@@ -25,27 +25,30 @@
                             </div>
 
                             <div class="col-md-4 mb-3">
-                                <label class="form-label text-white">سعر البيع (LE)</label>
-                                <input asp-for="SalePrice" type="number" step="0.01" class="form-control bg-dark text-white border-secondary rounded-pill px-3" required />
-                            </div>
-
-                            <div class="col-md-4 mb-3">
-                                <label class="form-label text-white">الكمية المتوفرة</label>
-                                <input asp-for="StockQuantity" type="number" step="0.01" class="form-control bg-dark text-white border-secondary rounded-pill px-3" required />
-                            </div>
-                            <div class="col-md-4 mb-3">
-                                <label class="text-white" id="priceLabel">سعر الشراء</label>
-                                <input asp-for="CostPrice" type="number" step="0.01" class="form-control bg-dark text-white border-secondary rounded-pill" required />
-                            </div>
-
-                            <div class="col-md-4 mb-3">
                                 <label class="form-label text-white">نوع وحدة البيع</label>
-                                <select asp-for="Unit" class="form-select bg-dark text-white border-secondary rounded-pill px-3">
+                                <select asp-for="Unit" id="UnitSelect" class="form-select bg-dark text-white border-secondary rounded-pill px-3" required>
                                     <option value="">-- اختر النوع --</option>
                                     <option value="Piece">بالقطعة (عدد)</option>
                                     <option value="Kilo">بالكيلو (ميزان/جرامات)</option>
                                 </select>
+                                <span asp-validation-for="Unit" class="text-danger"></span>
                             </div>
+
+                            <div class="col-md-4 mb-3">
+                                <label id="salePriceLabel" class="form-label text-white">سعر البيع (LE)</label>
+                                <input asp-for="SalePrice" type="number" step="0.01" class="form-control bg-dark text-white border-secondary rounded-pill px-3" required />
+                            </div>
+
+                            <div class="col-md-4 mb-3">
+                                <label id="stockLabel" class="form-label text-white">الكمية المتوفرة</label>
+                                <input asp-for="StockQuantity" type="number" step="0.001" class="form-control bg-dark text-white border-secondary rounded-pill px-3" required />
+                            </div>
+
+                            <div class="col-md-4 mb-3">
+                                <label id="costPriceLabel" class="form-label text-white">سعر الشراء (التكلفة)</label>
+                                <input asp-for="CostPrice" type="number" step="0.01" class="form-control bg-dark text-white border-secondary rounded-pill px-3" required />
+                            </div>
+                        </div>
 
                         <div class="d-flex gap-2 mt-4">
                             <button type="submit" class="btn btn-info rounded-pill px-5 fw-bold">حفظ المنتج</button>
@@ -58,8 +61,33 @@
     </div>
 </div>
 
+@section Scripts {
+    <script>
+        // دالة تغيير المسميات بناءً على الوحدة
+        document.getElementById('UnitSelect').addEventListener('change', function () {
+            const unit = this.value;
+            const saleLabel = document.getElementById('salePriceLabel');
+            const costLabel = document.getElementById('costPriceLabel');
+            const stockLabel = document.getElementById('stockLabel');
+
+            if (unit === "Kilo") {
+                saleLabel.innerHTML = '<i class="fas fa-balance-scale me-1 text-info"></i> سعر الكيلو (بيع)';
+                costLabel.innerHTML = '<i class="fas fa-tag me-1 text-info"></i> سعر الكيلو (شراء)';
+                stockLabel.innerHTML = '<i class="fas fa-weight me-1 text-info"></i> الوزن الحالي (كجم)';
+            } else if (unit === "Piece") {
+                saleLabel.innerHTML = '<i class="fas fa-coins me-1 text-warning"></i> سعر القطعة (بيع)';
+                costLabel.innerHTML = '<i class="fas fa-shopping-cart me-1 text-warning"></i> سعر القطعة (شراء)';
+                stockLabel.innerHTML = '<i class="fas fa-boxes me-1 text-warning"></i> الكمية الحالية (عدد)';
+            } else {
+                salePriceLabel.innerText = "سعر البيع (LE)";
+                costPriceLabel.innerText = "سعر الشراء (التكلفة)";
+                stockLabel.innerText = "الكمية المتوفرة";
+            }
+        });
+    </script>
+}
+
 <style>
-    /* تنسيقات إضافية للنماذج */
     .form-control:focus, .form-select:focus {
         background-color: #1a1d21 !important;
         border-color: #0dcaf0 !important;
@@ -71,5 +99,6 @@
         font-size: 0.9rem;
         margin-bottom: 8px;
         display: block;
+        transition: all 0.3s ease;
     }
 </style>

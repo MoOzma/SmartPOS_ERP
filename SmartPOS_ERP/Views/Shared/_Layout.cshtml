@@ -62,12 +62,38 @@
                                     <i class="fas fa-users-cog me-1"></i> الإدارة
                                 </a>
                             </li>
-                            <li class="nav-item">
-                                <a class="nav-link nav-link-custom" asp-controller="Products" asp-action="Reports">
-                                    <i class="bi bi-clipboard2-data-fill"></i> التقارير
+                          
+
+                            <li class="nav-item dropdown">
+                                <a class="nav-link dropdown-toggle  fw-bold" href="#" id="navbarDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                    <i class="fas fa-chart-pie me-1"></i> التقارير المالية
                                 </a>
+                                <ul class="dropdown-menu dropdown-menu-dark border-info shadow-lg" aria-labelledby="navbarDropdown">
+                                    <li>
+                                        <a class="dropdown-item py-2" asp-controller="Reports" asp-action="DailyReport">
+                                            <i class="fas fa-calendar-day me-2 text-info"></i> مبيعات اليوم والشهر
+                                        </a>
+                                    </li>
+                                    <li>
+                                        <a class="dropdown-item py-2" asp-controller="Reports" asp-action="Index">
+                                            <i class="fas fa-history me-2 text-warning"></i> سجل الـ 12 شهر الماضية
+                                        </a>
+                                    </li>
+                                    <li><hr class="dropdown-divider border-secondary"></li>
+                                    <li>
+                                        <a class="dropdown-item py-2" asp-controller="Reports" asp-action="TopFive">
+                                            <i class="fas fa-crown me-2 text-danger"></i> الأكثر مبيعاً
+                                        </a>
+                                    </li>
+                                </ul>
                             </li>
+
                         }
+                        <li class="nav-item">
+                            <a class="nav-link nav-link-custom" asp-controller="Order" asp-action="Index">
+                                <i class="bi bi-receipt"></i> الفواتير
+                            </a>
+                        </li>
                     </ul>
                     <div class="d-flex align-items-center gap-3">
                         <span class="badge bg-dark border border-secondary p-2">

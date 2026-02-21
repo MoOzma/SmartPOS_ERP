@@ -281,37 +281,52 @@
             renderCart();
         }
 
-        // 6. إنهاء العملية وإرسال البيانات للسيرفر
-        function checkout() {
-            if (cart.length === 0) return;
+                function checkout() {
+            if (typeof cart === 'undefined' || cart.length === 0) {
+                alert("برجاء إضافة منتجات أولاً قبل إتمام البيع");
+                return;
+            }
 
-            let orderData = {
-                totalAmount: parseFloat(document.getElementById('total').innerText),
-                taxAmount: parseFloat(document.getElementById('tax').innerText),
-                orderDetails: cart.map(item => ({
-                    productId: parseInt(item.id),
-                    quantity: item.qty,
-                    unitPrice: item.price
-                }))
+            const orderDetails = cart.map(item => ({
+                ProductId: parseInt(item.id),
+                Quantity: parseFloat(item.qty), 
+                UnitPrice: parseFloat(item.price)
+            }));
+
+            const orderData = {
+                TotalAmount: parseFloat(document.getElementById('total').innerText) || 0,
+                TaxAmount: parseFloat(document.getElementById('tax').innerText) || 0,
+                OrderDetails: orderDetails
             };
 
-            fetch('/Products/SaveOrder', {
+            fetch('/Products/SaveOrder', { 
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(orderData)
-            }).then(response => {
+            })
+            .then(async response => {
+                const contentType = response.headers.get("content-type");
+
                 if (response.ok) {
-                    alert("تم حفظ الفاتورة بنجاح!");
-                    cart = [];
-                    renderCart();
-                    location.reload();
-                } else {
-                    alert("فشلت عملية الحفظ، تأكد من الاتصال بالسيرفر");
+                    alert("✅ تم حفظ الفاتورة بنجاح");
+                    window.location.reload();
                 }
+                else {
+                    if (contentType && contentType.includes("application/json")) {
+                        const errorData = await response.json();
+                        alert("⚠️ " + (errorData.message || "فشل الحفظ"));
+                    } else {
+                        const errorText = await response.text();
+                        alert("❌ خطأ من السيرفر: " + errorText);
+                    }
+                }
+            })
+            .catch(error => {
+                console.error('Network Error:', error);
+                alert("🌐 تعذر الاتصال بالسيرفر، يرجى التأكد من تشغيل البرنامج");
             });
         }
-
-        // 7. مستمع الباركود (بدون إخفاء المنتجات)
+        
         document.getElementById('searchInput').addEventListener('input', function (e) {
             let val = e.target.value.trim();
             if (val === "") return;

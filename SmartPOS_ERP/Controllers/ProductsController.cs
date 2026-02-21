@@ -163,97 +163,63 @@ namespace SmartPOS_ERP.Controllers
         }
 
 
-
         [HttpPost]
-        public async Task<IActionResult> SaveOrder([FromBody] OrderViewModel orderData)
+        public async Task<IActionResult> SaveOrder([FromBody] OrderViewModel model)
         {
-            if (orderData == null || orderData.OrderDetails == null)
-                return BadRequest("بيانات الفاتورة غير مكتملة");
+            if (model == null || !model.OrderDetails.Any()) return BadRequest();
 
             using (var transaction = await _context.Database.BeginTransactionAsync())
             {
                 try
                 {
-                    // 1. تسجيل الفاتورة الرئيسية (اختياري حسب جدولك)
-                    // ... كود حفظ الفاتورة ...
+                    var order = new Order
+                    {
+                        OrderDate = DateTime.Now,
+                        TotalAmount = model.TotalAmount,
+                        TaxAmount = model.TaxAmount,
+                        OrderDetails = new List<OrderDetail>()
+                    };
 
-                    foreach (var item in orderData.OrderDetails)
+                    foreach (var item in model.OrderDetails)
                     {
                         var product = await _context.Products.FindAsync(item.ProductId);
 
-                        if (product != null)
+                        if (product != null && product.TrackInventory) 
                         {
-                            // التحقق من توفر الكمية (سواء كانت جرامات أو قطع)
+                            // التحقق من الوزن بالجرامات (Decimal Comparison)
                             if (product.StockQuantity < item.Quantity)
                             {
-                                return BadRequest($"الكمية المطلوبة من {product.Name} غير متوفرة");
+                                string unitName = product.Unit == "Kilo" ? "كجم" : "قطعة";
+                                return BadRequest(new
+                                {
+                                    message = $"خطأ في كمية {product.Name}: المطلوب ({item.Quantity} {unitName})، والمتاح في المخزن ({product.StockQuantity} {unitName}) فقط!"
+                                });
                             }
 
-                            // خصم الكمية (المتصفح يرسل الكمية محسوبة جاهزة سواء كانت وزن أو قطعة)
                             product.StockQuantity -= item.Quantity;
                         }
+
+                        order.OrderDetails.Add(new OrderDetail
+                        {
+                            ProductId = item.ProductId,
+                            Quantity = item.Quantity, 
+                            UnitPrice = item.UnitPrice
+                        });
                     }
 
+                    _context.Orders.Add(order);
                     await _context.SaveChangesAsync();
                     await transaction.CommitAsync();
-                    return Ok();
+
+                    return Ok(new { message = "تمت العملية بنجاح" });
                 }
                 catch (Exception ex)
                 {
                     await transaction.RollbackAsync();
-                    return StatusCode(500, "حدث خطأ أثناء معالجة العملية");
+                    return StatusCode(500, "حدث خطأ فني: " + ex.Message);
                 }
             }
         }
-
-
-        // GET: Products/Edit/5
-
-
-
-
-        public async Task<IActionResult> Reports()
-        {
-            // تأمين الصفحة للمدير فقط
-            if (HttpContext.Session.GetString("UserRole") != "Admin")
-                return RedirectToAction("Login", "Account");
-
-            // 1. حساب إجمالي المبيعات (من جدول الطلبات الذي أنشأناه سابقاً)
-            var totalSales = await _context.OrderDetails.SumAsync(od => od.Quantity * od.UnitPrice);
-
-            // 2. حساب صافي الأرباح 
-            // التفكير البرمجي: الربح = (سعر البيع - سعر التكلفة) * الكمية
-            var products = await _context.Products.ToListAsync();
-            var totalProfit = await _context.OrderDetails
-                .Include(od => od.Product)
-                .SumAsync(od => od.Quantity * (od.UnitPrice - od.Product.CostPrice));
-
-            // 3. عدد المنتجات التي مخزونها أقل من 5
-            var lowStockCount = products.Count(p => p.StockQuantity < 5);
-
-            // نرسل البيانات للواجهة عبر ViewBag
-            ViewBag.TotalSales = totalSales;
-            ViewBag.TotalProfit = totalProfit;
-            ViewBag.LowStockCount = lowStockCount;
-            ViewBag.OrdersCount = await _context.OrderDetails.Select(od => od.Id).CountAsync();
-
-            // التفكير البرمجي: نريد مبيعات آخر 7 أيام
-            var salesLast7Days = await _context.OrderDetails
-                .GroupBy(od => od.Id) // (ملاحظة: هنا يفضل التجميع حسب تاريخ الفاتورة إذا كان موجوداً)
-                .Select(g => new { Day = "اليوم", Total = g.Sum(x => x.Quantity * x.UnitPrice) })
-                .Take(7)
-                .ToListAsync();
-
-            // نرسل الأسماء والقيم كقوائم منفصلة للرسم البياني
-            ViewBag.ChartLabels = Newtonsoft.Json.JsonConvert.SerializeObject(new[] { "السبت", "الأحد", "الاثنين", "الثلاثاء", "الأربعاء", "الخميس", "الجمعة" });
-            ViewBag.ChartData = Newtonsoft.Json.JsonConvert.SerializeObject(new[] { 120, 150, 180, 100, 250, 300, 200 }); // أرقام تجريبية
-
-
-            return View();
-        }
-
-
-
 
 
     }
