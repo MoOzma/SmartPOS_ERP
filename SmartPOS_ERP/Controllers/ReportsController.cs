@@ -114,5 +114,22 @@ namespace SmartPOS_ERP.Controllers
             return View();
         }
 
+
+        // تقرير المنتجات التي وصلت لحد إعادة الطلب أو نفدت
+        public async Task<IActionResult> LowStockReport()
+        {
+            // جلب المنتجات التي يقل مخزونها عن حد إعادة الطلب 
+                        // أو التي نفدت تماماً (صفر أو أقل)
+            var lowStockProducts = await _context.Products
+                .Where(p => p.TrackInventory && (p.StockQuantity <= p.ReorderLevel || p.StockQuantity <= 0))
+                .OrderBy(p => p.StockQuantity)
+                .ToListAsync();
+
+            return View(lowStockProducts);
+        }
+
+
+
+
     }
 }

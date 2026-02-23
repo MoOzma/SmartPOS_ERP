@@ -1,0 +1,57 @@
+﻿@model IEnumerable<SmartPOS_ERP.Models.Product>
+
+<div class="container-fluid bg-dark text-white p-4" style="min-height: 100vh; background-color: #1a1d21 !important;">
+    <div class="d-flex justify-content-between align-items-center mb-4 p-3 rounded shadow-sm" style="background-color: #25292e;">
+        <h3 class="text-danger fw-bold mb-0"><i class="fas fa-exclamation-triangle me-2"></i> تقرير نواقص المخزن</h3>
+        <button onclick="window.print()" class="btn btn-outline-light rounded-pill px-4">
+            <i class="fas fa-print me-2"></i> طباعة التقرير
+        </button>
+    </div>
+
+    <div class="card bg-secondary bg-opacity-10 border-secondary shadow">
+        <div class="card-body p-0">
+            <table class="table table-dark table-hover mb-0 text-center">
+                <thead>
+                    <tr class="text-secondary">
+                        <th>المنتج</th>
+                        <th>الباركود</th>
+                        <th>الكمية الحالية</th>
+                        <th>حد الطلب</th>
+                        <th>الحالة</th>
+                        <th>إجراء</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var item in Model)
+                    {
+                        <tr>
+                            <td class="fw-bold">@item.Name</td>
+                            <td class="text-muted">@item.Barcode</td>
+                            <td class="text-warning fw-bold">@item.StockQuantity.ToString("N3") @(item.Unit == "Kilo" ? "كجم" : "قطعة")</td>
+                            <td>@item.ReorderLevel</td>
+                            <td>
+                                @if (item.StockQuantity <= 0)
+                                {
+                                    <span class="badge bg-danger">نفد تماماً</span>
+                                }
+                                else
+                                {
+                                    <span class="badge bg-warning text-dark">تحت حد الطلب</span>
+                                }
+                            </td>
+                            <td>
+                                <a asp-controller="Products" asp-action="Edit" asp-route-id="@item.Id" class="btn btn-sm btn-info rounded-pill px-3">تعديل المخزون</a>
+                            </td>
+                        </tr>
+                    }
+                    @if (!Model.Any())
+                    {
+                        <tr>
+                            <td colspan="6" class="py-5 text-secondary fs-5">لا توجد نواقص حالياً، المخزن في حالة جيدة ✅</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>

@@ -1,0 +1,52 @@
+﻿@model IEnumerable<SmartPOS_ERP.Models.Supplier>
+
+<div class="container-fluid bg-dark text-white p-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 class="text-info fw-bold">دليل الموردين والحسابات</h2>
+        <a asp-action="Create" class="btn btn-success rounded-pill px-4">
+            <i class="fas fa-plus me-1"></i> إضافة مورد جديد
+        </a>
+    </div>
+
+    <div class="card bg-dark border-secondary shadow">
+        <div class="table-responsive">
+            <table class="table table-dark table-hover mb-0 align-middle">
+                <thead>
+                    <tr class="text-muted border-secondary">
+                        <th>المورد</th>
+                        <th>رقم الهاتف</th>
+                        <th>إجمالي المشتريات</th>
+                        <th>إجمالي المدفوعات</th>
+                        <th>الرصيد المتبقي</th>
+                        <th class="text-center">الإجراءات</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var item in Model)
+                    {
+                        // حساب المبالغ لكل مورد
+                        var totalPurchases = item.Invoices?.Sum(i => i.Details.Sum(d => d.PackageQuantity * d.PackageCost)) ?? 0;
+                        var totalPaid = item.Payments?.Sum(p => p.AmountPaid) ?? 0;
+                        var balance = totalPurchases - totalPaid;
+
+                        <tr>
+                            <td class="fw-bold text-info">@item.Name</td>
+                            <td>@item.Phone</td>
+                            <td>@totalPurchases.ToString("N2")</td>
+                            <td class="text-success">@totalPaid.ToString("N2")</td>
+                            <td class="@(balance > 0 ? "text-danger" : "text-wite") fw-bold">
+                                @balance.ToString("N2")
+                            </td>
+                            <td class="text-center">
+                                <a asp-controller="Purchases" asp-action="SupplierAccount" asp-route-id="@item.Id"
+                                   class="btn btn-sm btn-outline-info rounded-pill px-3">
+                                    <i class="fas fa-file-invoice-dollar me-1"></i> كشف الحساب
+                                </a>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>

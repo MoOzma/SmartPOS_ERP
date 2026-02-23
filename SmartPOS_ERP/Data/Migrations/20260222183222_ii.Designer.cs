@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using SmartPOS_ERP.Data;
 
@@ -11,9 +12,11 @@ using SmartPOS_ERP.Data;
 namespace SmartPOS_ERP.Data.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260222183222_ii")]
+    partial class ii
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -337,7 +340,7 @@ namespace SmartPOS_ERP.Data.Migrations
                     b.Property<int>("ProductId")
                         .HasColumnType("int");
 
-                    b.Property<int>("PurchaseInvoiceId")
+                    b.Property<int?>("PurchaseInvoiceId")
                         .HasColumnType("int");
 
                     b.Property<decimal>("TotalUnits")
@@ -350,8 +353,6 @@ namespace SmartPOS_ERP.Data.Migrations
                         .HasColumnType("decimal(18,2)");
 
                     b.HasKey("Id");
-
-                    b.HasIndex("ProductId");
 
                     b.HasIndex("PurchaseInvoiceId");
 
@@ -372,14 +373,9 @@ namespace SmartPOS_ERP.Data.Migrations
                     b.Property<int>("SupplierId")
                         .HasColumnType("int");
 
-                    b.Property<int?>("SupplierId1")
-                        .HasColumnType("int");
-
                     b.HasKey("Id");
 
                     b.HasIndex("SupplierId");
-
-                    b.HasIndex("SupplierId1");
 
                     b.ToTable("PurchaseInvoices");
                 });
@@ -433,34 +429,6 @@ namespace SmartPOS_ERP.Data.Migrations
                     b.HasKey("Id");
 
                     b.ToTable("Users");
-                });
-
-            modelBuilder.Entity("SupplierPayment", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<decimal>("AmountPaid")
-                        .HasColumnType("decimal(18,2)");
-
-                    b.Property<string>("Notes")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<DateTime>("PaymentDate")
-                        .HasColumnType("datetime2");
-
-                    b.Property<int>("SupplierId")
-                        .HasColumnType("int");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("SupplierId");
-
-                    b.ToTable("SupplierPayments");
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRoleClaim<string>", b =>
@@ -535,42 +503,15 @@ namespace SmartPOS_ERP.Data.Migrations
 
             modelBuilder.Entity("SmartPOS_ERP.Models.PurchaseDetail", b =>
                 {
-                    b.HasOne("SmartPOS_ERP.Models.Product", "Product")
-                        .WithMany()
-                        .HasForeignKey("ProductId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("SmartPOS_ERP.Models.PurchaseInvoice", "PurchaseInvoice")
+                    b.HasOne("SmartPOS_ERP.Models.PurchaseInvoice", null)
                         .WithMany("Details")
-                        .HasForeignKey("PurchaseInvoiceId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Product");
-
-                    b.Navigation("PurchaseInvoice");
+                        .HasForeignKey("PurchaseInvoiceId");
                 });
 
             modelBuilder.Entity("SmartPOS_ERP.Models.PurchaseInvoice", b =>
                 {
                     b.HasOne("SmartPOS_ERP.Models.Supplier", "Supplier")
-                        .WithMany("Invoices")
-                        .HasForeignKey("SupplierId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.HasOne("SmartPOS_ERP.Models.Supplier", null)
                         .WithMany("PurchaseInvoices")
-                        .HasForeignKey("SupplierId1");
-
-                    b.Navigation("Supplier");
-                });
-
-            modelBuilder.Entity("SupplierPayment", b =>
-                {
-                    b.HasOne("SmartPOS_ERP.Models.Supplier", "Supplier")
-                        .WithMany("Payments")
                         .HasForeignKey("SupplierId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
@@ -590,10 +531,6 @@ namespace SmartPOS_ERP.Data.Migrations
 
             modelBuilder.Entity("SmartPOS_ERP.Models.Supplier", b =>
                 {
-                    b.Navigation("Invoices");
-
-                    b.Navigation("Payments");
-
                     b.Navigation("PurchaseInvoices");
                 });
 #pragma warning restore 612, 618

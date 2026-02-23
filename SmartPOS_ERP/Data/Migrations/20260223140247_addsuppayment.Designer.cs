@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using SmartPOS_ERP.Data;
 
@@ -11,9 +12,11 @@ using SmartPOS_ERP.Data;
 namespace SmartPOS_ERP.Data.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260223140247_addsuppayment")]
+    partial class addsuppayment
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -337,7 +340,7 @@ namespace SmartPOS_ERP.Data.Migrations
                     b.Property<int>("ProductId")
                         .HasColumnType("int");
 
-                    b.Property<int>("PurchaseInvoiceId")
+                    b.Property<int?>("PurchaseInvoiceId")
                         .HasColumnType("int");
 
                     b.Property<decimal>("TotalUnits")
@@ -541,15 +544,11 @@ namespace SmartPOS_ERP.Data.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("SmartPOS_ERP.Models.PurchaseInvoice", "PurchaseInvoice")
+                    b.HasOne("SmartPOS_ERP.Models.PurchaseInvoice", null)
                         .WithMany("Details")
-                        .HasForeignKey("PurchaseInvoiceId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
+                        .HasForeignKey("PurchaseInvoiceId");
 
                     b.Navigation("Product");
-
-                    b.Navigation("PurchaseInvoice");
                 });
 
             modelBuilder.Entity("SmartPOS_ERP.Models.PurchaseInvoice", b =>
