@@ -90,6 +90,21 @@
                                             <i class="fas fa-box-open me-2 text-danger"></i> تقرير النواقص
                                         </a>
                                     </li>
+                                    <li><hr class="dropdown-divider border-secondary"></li>
+
+                                    <li>
+                                        <a class="dropdown-item" asp-controller="Products" asp-action="Profits">
+                                            <i class="fas fa-chart-line me-2 text-success"></i> الأرباح والخسائر
+                                        </a>
+                                    </li>
+
+
+                                    <li>
+                                        <a class="dropdown-item" asp-controller="Expenses" asp-action="Index">
+                                            <i class="fas fa-wallet me-2 text-warning"></i> سجل المصروفات
+                                        </a>
+                                    </li>
+
                                 </ul>
                             </li>
                             <li class="nav-item dropdown">
@@ -119,6 +134,7 @@
                                 </ul>
                             </li>
 
+                           
                         }
                         <li class="nav-item">
                             <a class="nav-link nav-link-custom" asp-controller="Order" asp-action="Index">
@@ -148,7 +164,8 @@
 
     <footer class="footer mt-auto py-3">
         <div class="container text-center">
-            <small>&copy; 2026 - SmartPOS ERP System - v1.0</small>
+            <small>&copy; 2026 - Sama_POS System - v1.0 By OZ</small>
+            <small>: 01288910489</small>
         </div>
     </footer>
 
@@ -156,5 +173,49 @@
     <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
     <script src="~/js/site.js" asp-append-version="true"></script>
     @await RenderSectionAsync("Scripts", required: false)
+
+    <script>
+        // وظيفة لتفعيل الشاشة الكاملة
+        function enableFullScreen() {
+            let elem = document.documentElement;
+            if (!document.fullscreenElement) {
+                if (elem.requestFullscreen) {
+                    elem.requestFullscreen().catch(err => {
+                        console.log("Error attempting full-screen: " + err.message);
+                    });
+                } else if (elem.webkitRequestFullscreen) { /* Safari */
+                    elem.webkitRequestFullscreen();
+                } else if (elem.msRequestFullscreen) { /* IE11 */
+                    elem.msRequestFullscreen();
+                }
+                // تخزين الحالة في الجلسة
+                sessionStorage.setItem("isFullScreen", "true");
+            }
+        }
+
+        // التحقق عند تحميل الصفحة
+        window.addEventListener('load', () => {
+            // إذا كان المستخدم قد فعل الوضع مسبقاً، ننتظر أول نقرة لإعادته
+            if (sessionStorage.getItem("isFullScreen") === "true") {
+                console.log("Waiting for user interaction to resume full screen...");
+            }
+        });
+
+        // مراقبة أي نقرة في البرنامج
+        document.addEventListener("click", function () {
+            // إذا لم نكن في وضع الشاشة الكاملة، نقوم بتفعيله
+            if (!document.fullscreenElement) {
+                enableFullScreen();
+            }
+        });
+
+        // في حال خرج المستخدم يدوياً بـ Esc، نقوم بتحديث الحالة
+        document.addEventListener('fullscreenchange', () => {
+            if (!document.fullscreenElement) {
+                sessionStorage.setItem("isFullScreen", "false");
+            }
+        });
+    </script>
 </body>
 </html>
+

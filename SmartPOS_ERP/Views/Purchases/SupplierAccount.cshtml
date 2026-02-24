@@ -68,11 +68,11 @@
                             </tr>
                         </thead>
                         <tbody>
-                            @foreach (var inv in Model.Invoices.OrderByDescending(x => x.PurchaseDate))
+                            @foreach (var inv in Model.Invoices.OrderByDescending(x => x.InvoiceDate))
                             {
                                 <tr>
                                     <td>#@inv.Id</td>
-                                    <td>@inv.PurchaseDate.ToString("yyyy-MM-dd")</td>
+                                    <td>@inv.InvoiceDate.ToString("yyyy-MM-dd")</td>
                                     <td class="fw-bold">@inv.Details.Sum(d => d.PackageQuantity * d.PackageCost).ToString("N2")</td>
                                     <td><a asp-action="Details" asp-route-id="@inv.Id" class="btn btn-sm btn-outline-info rounded-pill"><i class="fas fa-eye"></i></a></td>
                                 </tr>

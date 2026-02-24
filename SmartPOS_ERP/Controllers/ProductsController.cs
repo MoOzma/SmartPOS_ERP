@@ -1,12 +1,13 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
+﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
 using SmartPOS_ERP.Data;
 using SmartPOS_ERP.Models;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
 
 namespace SmartPOS_ERP.Controllers
 {
@@ -52,7 +53,7 @@ namespace SmartPOS_ERP.Controllers
       
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Create([Bind("Id,Name,Barcode,CostPrice,SalePrice,TaxRate,TrackInventory,StockQuantity,Unit,ReorderLevel,ImagePath")] Product product)
+        public async Task<IActionResult> Create([Bind("Id,Name,Barcode,CostPrice,SalePrice,TrackInventory,StockQuantity,Unit,ReorderLevel,ImagePath")] Product product)
         {
             if (ModelState.IsValid)
             {
@@ -87,7 +88,7 @@ namespace SmartPOS_ERP.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Edit(int id, [Bind("Id,Name,Barcode,CostPrice,SalePrice,TaxRate,TrackInventory,StockQuantity,ReorderLevel,Unit,ImagePath")] Product product)
+        public async Task<IActionResult> Edit(int id, [Bind("Id,Name,Barcode,CostPrice,SalePrice,TrackInventory,StockQuantity,ReorderLevel,Unit,ImagePath")] Product product)
         {
             if (id != product.Id)
             {
@@ -167,7 +168,7 @@ namespace SmartPOS_ERP.Controllers
                     {
                         OrderDate = DateTime.Now,
                         TotalAmount = model.TotalAmount,
-                        TaxAmount = model.TaxAmount,
+                        TaxAmount = 0,
                         OrderDetails = new List<OrderDetail>()
                     };
 
@@ -211,6 +212,87 @@ namespace SmartPOS_ERP.Controllers
                 }
             }
         }
+
+   //   [Authorize(Roles = "Admin")] 
+        public async Task<IActionResult> Profits()
+        {
+            var orders = await _context.Orders
+                .Include(o => o.OrderDetails)
+                .ThenInclude(d => d.Product)
+                .ToListAsync();
+
+            var allExpenses = await _context.Expenses.ToListAsync();
+
+            var monthlyProfits = orders
+                .GroupBy(o => new { o.OrderDate.Year, o.OrderDate.Month })
+                .Select(g => {
+                    var monthKey = $"{g.Key.Year}-{g.Key.Month:D2}";
+
+                    // ربح البضاعة = (سعر البيع - سعر التكلفة) * الكمية
+                    var grossProfit = g.Sum(o => o.OrderDetails.Sum(d =>
+                        (d.UnitPrice - (d.Product?.CostPrice ?? 0)) * d.Quantity));
+
+                    // مصاريف هذا الشهر
+                    var monthlyExpense = allExpenses
+                        .Where(e => e.ExpenseDate.Year == g.Key.Year && e.ExpenseDate.Month == g.Key.Month)
+                        .Sum(e => e.Amount);
+
+                    return new MonthlyProfitViewModel
+                    {
+                        Month = monthKey,
+                        TotalSales = g.Sum(o => o.TotalAmount),
+                        TotalProfit = grossProfit - monthlyExpense
+                    };
+                })
+                .OrderByDescending(g => g.Month)
+                .ToList();
+
+            return View(monthlyProfits);
+        }
+
+
+        public async Task<IActionResult> ProductHistory(int id)
+        {
+            var product = await _context.Products
+                .FirstOrDefaultAsync(p => p.Id == id);
+
+            if (product == null) return NotFound();
+
+            // 1. جلب سجلات الشراء (وارد)
+            var purchases = await _context.PurchaseDetails
+                .Include(pd => pd.PurchaseInvoice)
+                .Where(pd => pd.ProductId == id)
+                .Select(pd => new ProductMovementViewModel
+                {
+                    Date = pd.PurchaseInvoice.InvoiceDate,
+                    Type = "شراء (وارد)",
+                    Quantity = pd.PackageQuantity, // حسب تصميمك في PurchaseDetail
+                    Price = pd.PackageCost,
+                    Reference = "فاتورة شراء #" + pd.PurchaseInvoice.Id
+                }).ToListAsync();
+
+            // 2. جلب سجلات البيع (صادر)
+            var sales = await _context.OrderDetails
+                .Include(od => od.Order)
+                .Where(od => od.ProductId == id)
+                .Select(od => new ProductMovementViewModel
+                {
+                    Date = od.Order.OrderDate,
+                    Type = "بيع (صادر)",
+                    Quantity = od.Quantity,
+                    Price = od.UnitPrice,
+                    Reference = "فاتورة بيع #" + od.Order.Id
+                }).ToListAsync();
+
+            // 3. دمج السجلين وترتيبهم بالتاريخ
+            var history = purchases.Concat(sales).OrderByDescending(h => h.Date).ToList();
+
+            ViewBag.ProductName = product.Name;
+            ViewBag.CurrentStock = product.StockQuantity;
+
+            return View(history);
+        }
+
 
 
     }

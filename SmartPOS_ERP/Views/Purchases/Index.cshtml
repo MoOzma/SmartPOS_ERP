@@ -30,7 +30,7 @@
                         <tr>
                             <td class="ps-4 fw-bold text-secondary">#@item.Id</td>
                             <td>@item.Supplier?.Name</td>
-                            <td>@item.PurchaseDate.ToString("yyyy-MM-dd")</td>
+                            <td>@item.InvoiceDate.ToString("yyyy-MM-dd")</td>
                             <td><span class="badge bg-secondary rounded-pill">@item.Details.Count</span></td>
                             <td class="text-success fw-bold">
                                 @item.Details.Sum(d => d.PackageQuantity * d.PackageCost).ToString("N2") LE

@@ -18,6 +18,7 @@ namespace SmartPOS_ERP.Data
         public DbSet<SupplierPayment> SupplierPayments { get; set; }
         public DbSet<PurchaseInvoice> PurchaseInvoices { get; set; }
         public DbSet<PurchaseDetail> PurchaseDetails { get; set; }
+        public DbSet<Expense> Expenses { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {

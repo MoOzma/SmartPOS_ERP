@@ -23,7 +23,6 @@ namespace SmartPOS_ERP.Models
         [Display(Name = "سعر البيع")]
         public decimal SalePrice { get; set; } // السعر الذي يدفعه العميل
 
-        public decimal TaxRate { get; set; } = 0.14m; // ضريبة القيمة المضافة
 
         // --- تتبع المخزون ---
 

@@ -4,7 +4,7 @@
     <div class="d-flex justify-content-between align-items-start border-bottom border-secondary pb-4 mb-4">
         <div>
             <h2 class="text-info mb-1">فاتورة توريد #@Model.Id</h2>
-            <p class="text-muted mb-0">تاريخ المعاملة: @Model.PurchaseDate.ToString("dd MMMM yyyy")</p>
+            <p class="text-muted mb-0">تاريخ المعاملة: @Model.InvoiceDate.ToString("dd MMMM yyyy")</p>
         </div>
         <div class="text-end">
             <h5 class="text-warning mb-1">المورد: @Model.Supplier?.Name</h5>

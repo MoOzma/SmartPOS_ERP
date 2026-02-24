@@ -13,5 +13,6 @@
         public decimal PackageCost { get; set; }      // سعر شراء العلبة الواحدة
         public decimal UnitCost { get; set; }         // سعر تكلفة القطعة الواحدة (للمخزن)
         public Product Product { get; set; }
+        public DateTime InvoiceDate { get; set; } = DateTime.Now;
     }
 }

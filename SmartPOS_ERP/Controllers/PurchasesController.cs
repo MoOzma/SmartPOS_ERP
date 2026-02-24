@@ -21,7 +21,7 @@ namespace SmartPOS_ERP.Controllers
             var invoices = await _context.PurchaseInvoices
                 .Include(i => i.Supplier)
                 .Include(i => i.Details)
-                .OrderByDescending(i => i.PurchaseDate)
+                .OrderByDescending(i => i.InvoiceDate)
                 .ToListAsync();
 
             return View(invoices);
@@ -50,6 +50,7 @@ namespace SmartPOS_ERP.Controllers
         }
 
         [HttpPost]
+        [HttpPost]
         public async Task<IActionResult> SavePurchase([FromBody] PurchaseViewModel model)
         {
             if (model == null || !model.Items.Any()) return BadRequest("بيانات الفاتورة فارغة");
@@ -61,37 +62,29 @@ namespace SmartPOS_ERP.Controllers
                     var invoice = new PurchaseInvoice
                     {
                         SupplierId = model.SupplierId,
-                        PurchaseDate = model.PurchaseDate,
+                        // تأكد من استخدام الاسم الصحيح: PurchaseDate
+                        InvoiceDate = model.PurchaseDate == default ? DateTime.Now : model.PurchaseDate,
                         Details = new List<PurchaseDetail>()
                     };
 
                     foreach (var item in model.Items)
                     {
-                        // جلب المنتج لتحديث مخزونه
                         var product = await _context.Products.FindAsync(item.ProductId);
                         if (product != null)
                         {
-                            // الحساب: عدد العلب مضروباً في عدد القطع داخل كل علبة
                             decimal totalNewUnits = item.PackageQuantity * item.UnitsPerPackage;
-
-                            // 1. زيادة الكمية الحالية في المخزن بالقطع الفعلية
                             product.StockQuantity += totalNewUnits;
-
-                            // 2. تحديث سعر التكلفة للقطعة الواحدة (سعر العلبة ÷ عدد القطع)
-                            // هذا يضمن أن نظام البيع لديك يخصم الأرباح بناءً على تكلفة القطعة الصحيحة
                             product.CostPrice = item.PackageCost / item.UnitsPerPackage;
                         }
 
                         invoice.Details.Add(new PurchaseDetail
                         {
                             ProductId = item.ProductId,
-                            // الحقول الجديدة التي أضفناها للموديل
-                            PackageQuantity = item.PackageQuantity, // عدد العلب (مثلاً 4)
-                            UnitsPerPackage = item.UnitsPerPackage, // القطع داخل العلبة (مثلاً 12)
-                            TotalUnits = item.PackageQuantity * item.UnitsPerPackage, // الإجمالي (48)
-
-                            PackageCost = item.PackageCost, // سعر العلبة (مثلاً 120)
-                            UnitCost = item.PackageCost / item.UnitsPerPackage // سعر القطعة (10)
+                            PackageQuantity = item.PackageQuantity,
+                            UnitsPerPackage = item.UnitsPerPackage,
+                            TotalUnits = item.PackageQuantity * item.UnitsPerPackage,
+                            PackageCost = item.PackageCost,
+                            UnitCost = item.PackageCost / item.UnitsPerPackage
                         });
                     }
 

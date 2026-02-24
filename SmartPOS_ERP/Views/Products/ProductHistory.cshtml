@@ -1,0 +1,43 @@
+﻿@model IEnumerable<ProductMovementViewModel>
+
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h2 class="text-info fw-bold"><i class="fas fa-history me-2"></i> سجل حركة: @ViewBag.ProductName</h2>
+        <div class="bg-dark p-2 border border-secondary rounded">
+            <span class="text-white small">الرصيد الحالي بالمخزن:</span>
+            <span class="fs-4 text-warning fw-bold">@ViewBag.CurrentStock</span>
+        </div>
+    </div>
+
+    <div class="card bg-dark shadow border-secondary">
+        <div class="table-responsive">
+            <table class="table table-dark table-hover mb-0">
+                <thead>
+                    <tr class="text-muted border-secondary">
+                        <th>التاريخ</th>
+                        <th>العملية</th>
+                        <th>الكمية</th>
+                        <th>السعر</th>
+                        <th>المرجع</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var move in Model)
+                    {
+                        <tr class="@(move.Type.Contains("بيع") ? "border-start border-danger border-4" : "border-start border-success border-4")">
+                            <td>@move.Date.ToString("yyyy-MM-dd HH:mm")</td>
+                            <td>
+                                <span class="badge @(move.Type.Contains("بيع") ? "bg-danger" : "bg-success")">
+                                    @move.Type
+                                </span>
+                            </td>
+                            <td class="fw-bold">@move.Quantity</td>
+                            <td>@move.Price.ToString("N2")</td>
+                            <td class="small text-info">@move.Reference</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>

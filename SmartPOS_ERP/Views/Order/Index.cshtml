@@ -12,7 +12,6 @@
                         <th>رقم الفاتورة</th>
                         <th>تاريخ ووقت العملية</th>
                         <th>عدد الأصناف</th>
-                        <th>الضريبة (14%)</th>
                         <th>الإجمالي النهائي</th>
                         <th>الإجراءات</th>
                     </tr>
@@ -24,19 +23,16 @@
                             <td class="fw-bold text-info">#@order.Id</td>
                             <td>
                                 <div class="small">@order.OrderDate.ToString("yyyy/MM/dd")</div>
-                                <div class="badge bg-dark text-secondary">@order.OrderDate.ToString("hh:mm tt")</div>
+                                <div class="badge bg-dark text-white">@order.OrderDate.ToString("hh:mm tt")</div>
                             </td>
                             <td><span class="badge rounded-pill bg-outline-light border px-3">@order.OrderDetails.Count</span></td>
-                            <td class="text-muted">@order.TaxAmount.ToString("N2")</td>
                             <td class="fw-bold text-warning fs-5">@order.TotalAmount.ToString("N2") ج.م</td>
                             <td>
                                 <a asp-action="OrderDetails"
                                    asp-controller="Order"
                                    asp-route-id="@order.Id"
                                    class="btn btn-info">عرض</a>
-                                <button class="btn btn-sm btn-outline-light rounded-pill ms-1">
-                                    <i class="fas fa-print"></i>
-                                </button>
+                                
                             </td>
                         </tr>
                     }
