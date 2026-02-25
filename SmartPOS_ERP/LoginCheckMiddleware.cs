@@ -2,7 +2,7 @@
 using System.Threading.Tasks;
 
 
-{
+
     public class LoginCheckMiddleware
     {
         private readonly RequestDelegate _next;
