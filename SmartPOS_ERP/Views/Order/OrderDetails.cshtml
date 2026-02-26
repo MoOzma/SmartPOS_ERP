@@ -40,6 +40,12 @@
                                 <div class="small">@detail.Order.OrderDate.ToString("yyyy/MM/dd")</div>
                                 <div class="badge bg-dark text-white">@detail.Order.OrderDate.ToString("hh:mm tt")</div>
                             </td>
+                            <td class="text-end fw-bold text-warning">
+                                <button class="btn btn-sm btn-outline-danger"
+                                        onclick="returnProduct(@detail.Order.Id, @item.ProductId, @item.Quantity)">
+                                    <i class="fa fa-undo"></i> مرتجع
+                                </button>
+                            </td>
                         </tr>
                     }
                 </tbody>

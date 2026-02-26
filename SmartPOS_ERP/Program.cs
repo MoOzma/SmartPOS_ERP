@@ -47,7 +47,6 @@ app.UseRouting();
 app.UseSession();
 
 // تفعيل حارس البوابة لفحص تسجيل الدخول
-app.UseMiddleware<LoginCheckMiddleware>();
 
 app.UseAuthentication();
 app.UseAuthorization();

@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using SmartPOS_ERP.Data;
 
@@ -11,9 +12,11 @@ using SmartPOS_ERP.Data;
 namespace SmartPOS_ERP.Data.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260225151233_hg")]
+    partial class hg
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -411,38 +414,6 @@ namespace SmartPOS_ERP.Data.Migrations
                     b.ToTable("PurchaseInvoices");
                 });
 
-            modelBuilder.Entity("SmartPOS_ERP.Models.SalesReturn", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<int>("OrderId")
-                        .HasColumnType("int");
-
-                    b.Property<int>("ProductId")
-                        .HasColumnType("int");
-
-                    b.Property<int>("Quantity")
-                        .HasColumnType("int");
-
-                    b.Property<decimal>("RefundAmount")
-                        .HasColumnType("decimal(18,2)");
-
-                    b.Property<DateTime>("ReturnDate")
-                        .HasColumnType("datetime2");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("OrderId");
-
-                    b.HasIndex("ProductId");
-
-                    b.ToTable("SalesReturns");
-                });
-
             modelBuilder.Entity("SmartPOS_ERP.Models.Supplier", b =>
                 {
                     b.Property<int>("Id")
@@ -623,25 +594,6 @@ namespace SmartPOS_ERP.Data.Migrations
                         .HasForeignKey("SupplierId1");
 
                     b.Navigation("Supplier");
-                });
-
-            modelBuilder.Entity("SmartPOS_ERP.Models.SalesReturn", b =>
-                {
-                    b.HasOne("SmartPOS_ERP.Models.Order", "Order")
-                        .WithMany()
-                        .HasForeignKey("OrderId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("SmartPOS_ERP.Models.Product", "Product")
-                        .WithMany()
-                        .HasForeignKey("ProductId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Order");
-
-                    b.Navigation("Product");
                 });
 
             modelBuilder.Entity("SupplierPayment", b =>

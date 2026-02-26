@@ -163,5 +163,13 @@ namespace SmartPOS_ERP.Controllers
             return View(suppliers);
         }
 
+
+
+
+
+
+
+
+
     }
 }

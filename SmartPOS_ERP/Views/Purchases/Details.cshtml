@@ -22,6 +22,7 @@
                     <th class="text-center">الكمية (علبة/كجم)</th>
                     <th class="text-center">سعر الوحدة</th>
                     <th class="text-center">الإجمالي</th>
+                    <th class="text-center">الإجمالي</th>
                 </tr>
             </thead>
             <tbody>
@@ -35,6 +36,7 @@
                         <td class="text-center">@detail.PackageQuantity</td>
                         <td class="text-center">@detail.PackageCost.ToString("N2")</td>
                         <td class="text-center fw-bold">@( (detail.PackageQuantity * detail.PackageCost).ToString("N2") )</td>
+                       
                     </tr>
                 }
             </tbody>
@@ -60,3 +62,4 @@
         </a>
     </div>
 </div>
+
