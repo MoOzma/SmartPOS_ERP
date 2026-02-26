@@ -40,11 +40,6 @@ A robust and scalable Point of Sale (POS) and Enterprise Resource Planning (ERP)
 
 ## 📸 Screenshots
 
-*(Tip: You can upload your screenshots to a folder named 'screenshots' in your repo and link them here)*
-- **Point of Sale Interface:** Clean and responsive UI for quick checkout.
-- **Supplier Ledger:** Real-time tracking of debts and payments.
-- **Profit Dashboard:** Visual representation of business health.
-
 ## 📝 How to Run
 
 1.  Clone the repository.
