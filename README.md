@@ -42,7 +42,7 @@ A robust and scalable Point of Sale (POS) and Enterprise Resource Planning (ERP)
 
 | Page: Home | Page: Products Management |
 | :---: | :---: |
-| ![Home](https://github.com/MoOzma/Sama_MVC/raw/master/ScreenShots/Home.png) | ![ProductsTable](https://github.com/MoOzma/Sama_MVC/raw/master/ScreenShots/ProductsTable.png) |
+| ![Home](https://github.com/MoOzma/SmartPOS_ERP/blob/master/ScreenShots/Add%20user.png) | ![ProductsTable](https://github.com/MoOzma/Sama_MVC/raw/master/ScreenShots/ProductsTable.png) |
 
 | Page: Admin Registration | Page: Category Management |
 | :---: | :---: |
