@@ -42,23 +42,23 @@ A robust and scalable Point of Sale (POS) and Enterprise Resource Planning (ERP)
 
 | Page: Home | Page: Products Management |
 | :---: | :---: |
-| ![Home](https://github.com/MoOzma/SmartPOS_ERP/blob/master/ScreenShots/Add%20user.png) | ![ProductsTable](https://github.com/MoOzma/Sama_MVC/raw/master/ScreenShots/ProductsTable.png) |
+| ![Home](https://github.com/MoOzma/SmartPOS_ERP/blob/master/ScreenShots/Add%20user.png) | ![ProductsTable](https://github.com/MoOzma/SmartPOS_ERP/blob/master/ScreenShots/Login.png) |
 
 | Page: Admin Registration | Page: Category Management |
 | :---: | :---: |
-| ![AdminRegister](https://github.com/MoOzma/Sama_MVC/raw/master/ScreenShots/AdminRegister.png) | ![CategoryTable](https://github.com/MoOzma/Sama_MVC/raw/master/ScreenShots/CategoryTable.png) |
+| ![AdminRegister]() | ![CategoryTable]() |
 
 | Page: Users List | Page: Order Summary |
 | :---: | :---: |
-| ![ListOfUsers](https://github.com/MoOzma/Sama_MVC/raw/master/ScreenShots/ListOfUsers.png) | ![OrderSummary](https://github.com/MoOzma/Sama_MVC/raw/master/ScreenShots/OrderSummery.png) |
+| ![ListOfUsers]() | ![OrderSummary]() |
 
 | Page: Payment (Stripe) | Page: Product Details |
 | :---: | :---: |
-| ![Payment](https://github.com/MoOzma/Sama_MVC/raw/master/ScreenShots/Payment.png) | ![ProductDetails](https://github.com/MoOzma/Sama_MVC/raw/master/ScreenShots/PrpductDetails.png) |
+| ![Payment]() | ![ProductDetails]() |
 
 | Page: Shopping Cart | Page: Update Operations |
 | :---: | :---: |
-| ![ShoppingCart](https://github.com/MoOzma/Sama_MVC/raw/master/ScreenShots/ShoppingCart.png) | ![Updating](https://github.com/MoOzma/Sama_MVC/raw/master/ScreenShots/Updating.png) |b.com/MoOzma/Sama_MVC/blob/master/ScreenShots/ShoppingCart.png) | ![ProductsTable](https://github.com/MoOzma/Sama_MVC/blob/master/ScreenShots/Updating.png) |
+| ![ShoppingCart]() | ![Updating]() || ![ProductsTable]() |
 
 
 
