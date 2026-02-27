@@ -74,7 +74,7 @@ A robust and scalable Point of Sale (POS) and Enterprise Resource Planning (ERP)
 
 | Page: Shopping Cart | Page: Update Operations |
 | :---: | :---: |
-| ![ShoppingCart](https://github.com/MoOzma/SmartPOS_ERP/blob/master/ScreenShots/account%20statement.png) | ![Updating]() || 
+| ![ShoppingCart](https://github.com/MoOzma/SmartPOS_ERP/blob/master/ScreenShots/account%20statement.png) | ![Updating]() || ![ProductsTable](https://github.com/MoOzma/SmartPOS_ERP/blob/master/ScreenShots/Warehouse%20Shortages%20Report.png) |
 
 
 ## 📝 How to Run
