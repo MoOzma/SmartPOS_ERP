@@ -42,19 +42,19 @@ A robust and scalable Point of Sale (POS) and Enterprise Resource Planning (ERP)
 
 | Page: Home | Page: Products Management |
 | :---: | :---: |
-| ![Home](https://github.com/MoOzma/SmartPOS_ERP/blob/master/ScreenShots/Add%20user.png) | ![ProductsTable](https://github.com/MoOzma/SmartPOS_ERP/blob/master/ScreenShots/Login.png) |
+| ![Home](https://github.com/MoOzma/SmartPOS_ERP/blob/master/ScreenShots/Home.png) | ![ProductsTable](https://github.com/MoOzma/SmartPOS_ERP/blob/master/ScreenShots/Login.png) |
 
 | Page: Admin Registration | Page: Category Management |
 | :---: | :---: |
-| ![AdminRegister]() | ![CategoryTable]() |
+| ![AdminRegister](https://github.com/MoOzma/SmartPOS_ERP/blob/master/ScreenShots/Add%20user.png) | ![CategoryTable](https://github.com/MoOzma/SmartPOS_ERP/blob/master/ScreenShots/Data%20modification.png) |
 
 | Page: Users List | Page: Order Summary |
 | :---: | :---: |
-| ![ListOfUsers]() | ![OrderSummary]() |
+| ![ListOfUsers](https://github.com/MoOzma/SmartPOS_ERP/blob/master/ScreenShots/Financial%20dashboard.png) | ![OrderSummary](https://github.com/MoOzma/SmartPOS_ERP/blob/master/ScreenShots/Movement%20log.png) |
 
 | Page: Payment (Stripe) | Page: Product Details |
 | :---: | :---: |
-| ![Payment]() | ![ProductDetails]() |
+| ![Payment](https://github.com/MoOzma/SmartPOS_ERP/blob/master/ScreenShots/Personnel%20management.png) | ![ProductDetails](https://github.com/MoOzma/SmartPOS_ERP/blob/master/ScreenShots/Profit%20and%20Loss.png) |
 
 | Page: Shopping Cart | Page: Update Operations |
 | :---: | :---: |
