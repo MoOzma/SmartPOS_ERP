@@ -58,8 +58,23 @@ A robust and scalable Point of Sale (POS) and Enterprise Resource Planning (ERP)
 
 | Page: Shopping Cart | Page: Update Operations |
 | :---: | :---: |
-| ![ShoppingCart]() | ![Updating]() || ![ProductsTable]() |
+| ![ShoppingCart](https://github.com/MoOzma/SmartPOS_ERP/blob/master/ScreenShots/Purchase%20invoices.png) | ![Updating]() || ![ProductsTable](https://github.com/MoOzma/SmartPOS_ERP/blob/master/ScreenShots/Sales%20display%20screen.png) |
 
+| Page: Shopping Cart | Page: Update Operations |
+| :---: | :---: |
+| ![ShoppingCart](https://github.com/MoOzma/SmartPOS_ERP/blob/master/ScreenShots/Sales%20invoice.png) | ![Updating]() || ![ProductsTable](https://github.com/MoOzma/SmartPOS_ERP/blob/master/ScreenShots/Sales%20invoices.png) |
+
+| Page: Shopping Cart | Page: Update Operations |
+| :---: | :---: |
+| ![ShoppingCart](https://github.com/MoOzma/SmartPOS_ERP/blob/master/ScreenShots/Suppliers%20Directory.png) | ![Updating]() || ![ProductsTable](https://github.com/MoOzma/SmartPOS_ERP/blob/master/ScreenShots/Supply%20invoice.png) |
+
+| Page: Shopping Cart | Page: Update Operations |
+| :---: | :---: |
+| ![ShoppingCart](https://github.com/MoOzma/SmartPOS_ERP/blob/master/ScreenShots/Supply%20of%20goods.png) | ![Updating]() || ![ProductsTable](https://github.com/MoOzma/SmartPOS_ERP/blob/master/ScreenShots/Warehouse%20Shortages%20Report.png) |
+
+| Page: Shopping Cart | Page: Update Operations |
+| :---: | :---: |
+| ![ShoppingCart](https://github.com/MoOzma/SmartPOS_ERP/blob/master/ScreenShots/account%20statement.png) | ![Updating]() || 
 
 
 ## 📝 How to Run
