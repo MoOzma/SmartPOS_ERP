@@ -40,8 +40,11 @@ A robust and scalable Point of Sale (POS) and Enterprise Resource Planning (ERP)
 
 ## 📸 System Screenshots
 
+### Home
+| Home  |
+![Home](https://github.com/MoOzma/SmartPOS_ERP/blob/master/ScreenShots/Home.png)
 ### 1️⃣ Authentication & User Management
-| Login & Home | Admin Registration | Personnel Management |
+| Login  | Admin Registration | Personnel Management |
 | :---: | :---: | :---: |
 | ![Login](https://github.com/MoOzma/SmartPOS_ERP/blob/master/ScreenShots/Login.png) | ![Add user](https://github.com/MoOzma/SmartPOS_ERP/blob/master/ScreenShots/Add%20user.png) | ![Personnel management](https://github.com/MoOzma/SmartPOS_ERP/blob/master/ScreenShots/Personnel%20management.png) |
 
