@@ -40,6 +40,28 @@ A robust and scalable Point of Sale (POS) and Enterprise Resource Planning (ERP)
 
 ## 📸 Screenshots
 
+| Page: Home | Page: Products Management |
+| :---: | :---: |
+| ![Home](https://github.com/MoOzma/Sama_MVC/raw/master/ScreenShots/Home.png) | ![ProductsTable](https://github.com/MoOzma/Sama_MVC/raw/master/ScreenShots/ProductsTable.png) |
+
+| Page: Admin Registration | Page: Category Management |
+| :---: | :---: |
+| ![AdminRegister](https://github.com/MoOzma/Sama_MVC/raw/master/ScreenShots/AdminRegister.png) | ![CategoryTable](https://github.com/MoOzma/Sama_MVC/raw/master/ScreenShots/CategoryTable.png) |
+
+| Page: Users List | Page: Order Summary |
+| :---: | :---: |
+| ![ListOfUsers](https://github.com/MoOzma/Sama_MVC/raw/master/ScreenShots/ListOfUsers.png) | ![OrderSummary](https://github.com/MoOzma/Sama_MVC/raw/master/ScreenShots/OrderSummery.png) |
+
+| Page: Payment (Stripe) | Page: Product Details |
+| :---: | :---: |
+| ![Payment](https://github.com/MoOzma/Sama_MVC/raw/master/ScreenShots/Payment.png) | ![ProductDetails](https://github.com/MoOzma/Sama_MVC/raw/master/ScreenShots/PrpductDetails.png) |
+
+| Page: Shopping Cart | Page: Update Operations |
+| :---: | :---: |
+| ![ShoppingCart](https://github.com/MoOzma/Sama_MVC/raw/master/ScreenShots/ShoppingCart.png) | ![Updating](https://github.com/MoOzma/Sama_MVC/raw/master/ScreenShots/Updating.png) |b.com/MoOzma/Sama_MVC/blob/master/ScreenShots/ShoppingCart.png) | ![ProductsTable](https://github.com/MoOzma/Sama_MVC/blob/master/ScreenShots/Updating.png) |
+
+
+
 ## 📝 How to Run
 
 1.  Clone the repository.
