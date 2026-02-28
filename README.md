@@ -38,12 +38,34 @@ A robust and scalable Point of Sale (POS) and Enterprise Resource Planning (ERP)
 * **Controllers:** Cleanly separated logic for `Products`, `Purchases`, `Expenses`, and `Account` management.
 * **Database Seeding:** Automated creation of a default "Admin" user with hashed credentials upon first run.
 
-## 📸 Screenshots
+## 📸 System Screenshots
 
-*(Tip: You can upload your screenshots to a folder named 'screenshots' in your repo and link them here)*
-- **Point of Sale Interface:** Clean and responsive UI for quick checkout.
-- **Supplier Ledger:** Real-time tracking of debts and payments.
-- **Profit Dashboard:** Visual representation of business health.
+###  🛒 Home
+![Home](https://github.com/MoOzma/SmartPOS_ERP/blob/master/ScreenShots/Home.png)
+### 1️⃣ Authentication & User Management
+| Login  | Admin Registration | Personnel Management |
+| :---: | :---: | :---: |
+| ![Login](https://github.com/MoOzma/SmartPOS_ERP/blob/master/ScreenShots/Login.png) | ![Add user](https://github.com/MoOzma/SmartPOS_ERP/blob/master/ScreenShots/Add%20user.png) | ![Personnel management](https://github.com/MoOzma/SmartPOS_ERP/blob/master/ScreenShots/Personnel%20management.png) |
+
+### 2️⃣ Inventory & Supply Chain
+| Suppliers Directory | Supply Invoice | Supply of Goods |
+| :---: | :---: | :---: |
+| ![Suppliers Directory](https://github.com/MoOzma/SmartPOS_ERP/blob/master/ScreenShots/Suppliers%20Directory.png) | ![Supply invoice](https://github.com/MoOzma/SmartPOS_ERP/blob/master/ScreenShots/Supply%20invoice.png) | ![Supply of goods](https://github.com/MoOzma/SmartPOS_ERP/blob/master/ScreenShots/Supply%20of%20goods.png) |
+
+### 3️⃣ Sales & Transactions
+| Sales Display Screen | Sales Invoice | Sales Invoices List |
+| :---: | :---: | :---: |
+| ![Sales display screen](https://github.com/MoOzma/SmartPOS_ERP/blob/master/ScreenShots/Sales%20display%20screen.png) | ![Sales invoice](https://github.com/MoOzma/SmartPOS_ERP/blob/master/ScreenShots/Sales%20invoice.png) | ![Sales invoices](https://github.com/MoOzma/SmartPOS_ERP/blob/master/ScreenShots/Sales%20invoices.png) |
+
+### 4️⃣ Accounting & Financial Dashboards
+| Financial Dashboard | Profit and Loss | Account Statement |
+| :---: | :---: | :---: |
+| ![Financial dashboard](https://github.com/MoOzma/SmartPOS_ERP/blob/master/ScreenShots/Financial%20dashboard.png) | ![Profit and Loss](https://github.com/MoOzma/SmartPOS_ERP/blob/master/ScreenShots/Profit%20and%20Loss.png) | ![account statement](https://github.com/MoOzma/SmartPOS_ERP/blob/master/ScreenShots/account%20statement.png) |
+
+### 5️⃣ Reports & Logs
+| Warehouse Shortages | Movement Log | Data Modification |
+| :---: | :---: | :---: |
+| ![Warehouse Shortages Report](https://github.com/MoOzma/SmartPOS_ERP/blob/master/ScreenShots/Warehouse%20Shortages%20Report.png) | ![Movement log](https://github.com/MoOzma/SmartPOS_ERP/blob/master/ScreenShots/Movement%20log.png) | ![Data modification](https://github.com/MoOzma/SmartPOS_ERP/blob/master/ScreenShots/Data%20modification.png) |
 
 ## 📝 How to Run
 
