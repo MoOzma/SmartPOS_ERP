@@ -4,7 +4,6 @@ using SmartPOS_ERP.Data;
 using SmartPOS_ERP.Models;
 
 var builder = WebApplication.CreateBuilder(args);
-///88
 // 1. إعداد قاعدة البيانات
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection") ?? throw new InvalidOperationException("Connection string 'DefaultConnection' not found.");
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
