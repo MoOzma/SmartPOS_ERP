@@ -8,7 +8,7 @@ using Microsoft.EntityFrameworkCore;
 using SmartPOS_ERP.Data;
 using SmartPOS_ERP.Models;
 namespace SmartPOS_ERP.Controllers
-{///pi
+{
     public class OrderController : Controller
     {
         private readonly ApplicationDbContext _context;
