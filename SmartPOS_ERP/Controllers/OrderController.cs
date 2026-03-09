@@ -16,7 +16,6 @@ namespace SmartPOS_ERP.Controllers
         public OrderController(ApplicationDbContext context)
         {
             _context = context;
-            ///;;;;;
         }
         public async Task<IActionResult> Index()
         {
