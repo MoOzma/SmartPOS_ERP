@@ -12,11 +12,10 @@ namespace SmartPOS_ERP.Controllers
     public class OrderController : Controller
     {
         private readonly ApplicationDbContext _context;
-        //I7
         public OrderController(ApplicationDbContext context)
         {
             _context = context;
-        }//yoyoy
+        }
         public async Task<IActionResult> Index()
         {
             // جلب الفواتير مرتبة من الأحدث للأقدم مع تفاصيل المنتجات
