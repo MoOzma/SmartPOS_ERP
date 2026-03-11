@@ -11,5 +11,9 @@
 
         public decimal Quantity { get; set; }
         public decimal UnitPrice { get; set; } // السعر وقت البيع
+
+
+
+        //
     }
 }
