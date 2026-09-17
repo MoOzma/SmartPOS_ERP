@@ -1,5 +1,9 @@
-﻿@{
-    Layout = null; // لا نريد القائمة العلوية أو الجانبية في صفحة الدخول
+@{
+    Layout = null;
+    var store = ViewData["StoreSettings"] as StoreSettings;
+    var storeName = string.IsNullOrWhiteSpace(store?.StoreName) ? "Sama_POS" : store.StoreName;
+    var loginUsers = ViewBag.LoginUsers as IEnumerable<LoginUserOption> ?? Enumerable.Empty<LoginUserOption>();
+    var typedUsername = ViewBag.Username as string;
 }
 
 <!DOCTYPE html>
@@ -7,36 +11,34 @@
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>تسجيل الدخول - Sama_POS</title>
-    <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
-    <style>
-        body {
-            background-color: #1a1d21; /* نفس اللون الداكن لمشروعك */
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            height: 100vh;
-        }
-
-        .login-card {
-            background-color: #2d3238;
-            border: none;
-            border-radius: 15px;
-            width: 100%;
-            max-width: 400px;
-            padding: 30px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
-        }
-    </style>
+    <title>تسجيل الدخول - @storeName</title>
+    <link rel="icon" href="~/favicon.ico" asp-append-version="true" />
+    <script>
+        (function () {
+            document.documentElement.setAttribute('data-theme', localStorage.getItem('sama-theme') || 'light');
+        })();
+    </script>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.rtl.css" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@@tabler/icons-webfont@3.31.0/dist/tabler-icons.min.css" />
+    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
 </head>
-<body>
-
-    <div class="login-card text-white">
+<body class="login-screen">
+    <canvas id="loginStage" class="login-stage" aria-hidden="true"></canvas>
+    <button class="icon-btn login-theme" type="button" data-theme-toggle title="الوضع الداكن" aria-label="الوضع الداكن">
+        <i class="ti ti-moon-stars"></i>
+    </button>
+    <div class="login-shell">
+        <div class="login-card">
         <div class="text-center mb-4">
-            <h2 class="text-info">
-               Sama_POS
-            </h2>
-            <p class="text-wite">نظام إدارة المبيعات </p>
+            @if (!string.IsNullOrWhiteSpace(store?.LogoPath))
+            {
+                <img src="@store.LogoPath" alt="" class="login-store-logo mb-3" />
+            }
+            <h2 class="fw-bold text-info">@storeName</h2>
+            <p class="text-secondary mb-0">نظام إدارة المبيعات</p>
         </div>
 
         @if (ViewBag.Error != null)
@@ -44,18 +46,353 @@
             <div class="alert alert-danger py-2">@ViewBag.Error</div>
         }
 
-        <form asp-action="Login" method="post">
+        <form asp-action="Login" method="post" id="loginForm">
             <div class="mb-3">
-                <label class="form-label">اسم المستخدم</label>
-                <input type="text" name="username" class="form-control bg-dark text-white border-secondary" required />
+                <label class="form-label" for="username">اسم المستخدم</label>
+                <div class="login-combo" data-login-combo>
+                    <input type="text" id="username" name="username" class="form-control" required autofocus autocomplete="username" value="@typedUsername" />
+                    @if (loginUsers.Any())
+                    {
+                        <button type="button" class="login-combo-toggle" aria-label="اختيار مستخدم" aria-expanded="false" aria-controls="loginUserList">
+                            <i class="ti ti-chevron-down"></i>
+                        </button>
+                        <ul id="loginUserList" class="login-combo-menu" hidden>
+                            @foreach (var loginUser in loginUsers)
+                            {
+                                <li>
+                                    <button type="button" class="login-combo-option" data-username="@loginUser.Username" data-filter="@loginUser.DisplayName @loginUser.Username">
+                                        <strong>@loginUser.DisplayName</strong>
+                                        <span>@loginUser.Username</span>
+                                    </button>
+                                </li>
+                            }
+                        </ul>
+                    }
+                </div>
             </div>
             <div class="mb-3">
-                <label class="form-label">كلمة المرور</label>
-                <input type="password" name="password" class="form-control bg-dark text-white border-secondary" required />
+                <label class="form-label" for="loginPassword">الرقم السري</label>
+                <div class="input-group">
+                    <input type="password" id="loginPassword" name="password" class="form-control login-pin" required maxlength="4" inputmode="numeric" autocomplete="current-password" dir="ltr" placeholder="••••" />
+                    <button type="button" class="btn btn-outline-secondary" onclick="togglePassword('loginPassword')" aria-label="إظهار الرقم السري">
+                        <i class="ti ti-eye"></i>
+                    </button>
+                </div>
             </div>
-            <button type="submit" class="btn btn-info w-100 fw-bold mt-2">دخول للنظام</button>
+            <button type="submit" class="btn btn-primary w-100 fw-bold mt-2 py-2">دخول للنظام</button>
         </form>
+        <p class="text-center text-secondary small mt-4 mb-0">@storeName</p>
+        </div>
+        <section class="login-highlights" aria-label="مميزات النظام">
+            <div class="login-highlights-inner">
+            <p class="login-highlights-kicker">نسخة المتجر الحالية</p>
+            <h1 class="login-highlights-title">من البيع حتى الربح…<br />كل حلقة في مكانها</h1>
+            <ul class="login-feature-list" id="loginFeatures">
+                <li class="login-feature is-active">
+                    <span class="login-feature-icon" aria-hidden="true"><i class="ti ti-barcode"></i></span>
+                    <div>
+                        <h2>شاشة بيع بالباركود</h2>
+                        <p>بيع بالقطعة أو بالكيلو، أصناف مثبتة، ومرتجع من نفس الفاتورة في ثوانٍ.</p>
+                    </div>
+                </li>
+                <li class="login-feature">
+                    <span class="login-feature-icon" aria-hidden="true"><i class="ti ti-file-invoice"></i></span>
+                    <div>
+                        <h2>عملاء وفواتير آجلة</h2>
+                        <p>البيع الآن والتحصيل لاحقًا، مع رصيد كل عميل ومستحقاته على اللوحة.</p>
+                    </div>
+                </li>
+                <li class="login-feature">
+                    <span class="login-feature-icon" aria-hidden="true"><i class="ti ti-packages"></i></span>
+                    <div>
+                        <h2>مخزون وصلاحية</h2>
+                        <p>كل بيع وتوريد ومرتجع توريد يُسجَّل فورًا، مع تقرير نواقص وقرب انتهاء الصلاحية.</p>
+                    </div>
+                </li>
+                <li class="login-feature">
+                    <span class="login-feature-icon" aria-hidden="true"><i class="ti ti-clock-hour-4"></i></span>
+                    <div>
+                        <h2>صندوق الوردية</h2>
+                        <p>المبيعات النقدية والمصروف وسداد المورد من الكاش تُخصم من المتوقع حتى الإقفال.</p>
+                    </div>
+                </li>
+                <li class="login-feature">
+                    <span class="login-feature-icon" aria-hidden="true"><i class="ti ti-chart-infographic"></i></span>
+                    <div>
+                        <h2>أرباح وتقارير</h2>
+                        <p>صافي الربح يظهر أحمر عند الخسارة وأخضر عند الربح، مع تقارير يوم وشهر وصلاحية.</p>
+                    </div>
+                </li>
+                <li class="login-feature">
+                    <span class="login-feature-icon" aria-hidden="true"><i class="ti ti-shield-lock"></i></span>
+                    <div>
+                        <h2>صلاحيات وإعدادات المحل</h2>
+                        <p>كل موظف يرى وظيفته فقط. طرق الدفع والطباعة والنسخ الاحتياطي من الإعدادات.</p>
+                    </div>
+                </li>
+            </ul>
+            </div>
+        </section>
     </div>
+    <p class="login-credit">
+        <span>Developed by Engineer Mohamed Abd El-Azim</span>
+        <a href="tel:01288910489"><i class="ti ti-phone" aria-hidden="true"></i> 01288910489</a>
+    </p>
+    <script src="~/js/site.js" asp-append-version="true"></script>
+    <script>
+        (function () {
+            var canvas = document.getElementById('loginStage');
+            if (!canvas || !canvas.getContext) return;
+            var ctx = canvas.getContext('2d');
+            var particles = [];
+            var mouse = { x: 0, y: 0, active: false };
+            var reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+            var raf = 0;
 
+            function cssColor(name, fallback) {
+                var value = getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+                return value || fallback;
+            }
+
+            function hexToRgb(hex) {
+                var h = hex.replace('#', '').trim();
+                if (h.length === 3) h = h[0] + h[0] + h[1] + h[1] + h[2] + h[2];
+                if (h.length !== 6) return { r: 109, g: 94, b: 246 };
+                return {
+                    r: parseInt(h.slice(0, 2), 16),
+                    g: parseInt(h.slice(2, 4), 16),
+                    b: parseInt(h.slice(4, 6), 16)
+                };
+            }
+
+            function bounds() {
+                return {
+                    w: Math.max(1, window.innerWidth),
+                    h: Math.max(1, window.innerHeight)
+                };
+            }
+
+            function sizeCanvas() {
+                var box = bounds();
+                var dpr = Math.min(window.devicePixelRatio || 1, 2);
+                canvas.width = Math.floor(box.w * dpr);
+                canvas.height = Math.floor(box.h * dpr);
+                canvas.style.width = box.w + 'px';
+                canvas.style.height = box.h + 'px';
+                ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+            }
+
+            function spawn() {
+                var box = bounds();
+                var count = Math.max(36, Math.floor(box.w / 32));
+                particles = [];
+                for (var i = 0; i < count; i++) {
+                    particles.push({
+                        x: Math.random() * box.w,
+                        y: Math.random() * box.h,
+                        vx: (Math.random() - 0.5) * 0.45,
+                        vy: (Math.random() - 0.5) * 0.45,
+                        r: 1.6 + Math.random() * 3.4,
+                        drift: Math.random() * Math.PI * 2
+                    });
+                }
+            }
+
+            function tick() {
+                var box = bounds();
+                var w = box.w;
+                var h = box.h;
+                var rgb = hexToRgb(cssColor('--app-primary', '#6D5EF6'));
+                ctx.clearRect(0, 0, w, h);
+
+                var gx = w * 0.42;
+                var gy = h * 0.45;
+                var gradient = ctx.createRadialGradient(gx, gy, 40, gx, gy, Math.max(w, h) * 0.62);
+                gradient.addColorStop(0, 'rgba(' + rgb.r + ',' + rgb.g + ',' + rgb.b + ',0.16)');
+                gradient.addColorStop(1, 'rgba(' + rgb.r + ',' + rgb.g + ',' + rgb.b + ',0)');
+                ctx.fillStyle = gradient;
+                ctx.fillRect(0, 0, w, h);
+
+                for (var i = 0; i < particles.length; i++) {
+                    var p = particles[i];
+                    p.drift += 0.008;
+                    p.x += p.vx + Math.sin(p.drift) * 0.12;
+                    p.y += p.vy + Math.cos(p.drift * 0.8) * 0.12;
+
+                    if (mouse.active) {
+                        var dx = mouse.x - p.x;
+                        var dy = mouse.y - p.y;
+                        var dist = Math.sqrt(dx * dx + dy * dy) || 1;
+                        if (dist < 180) {
+                            var force = (180 - dist) / 180;
+                            p.vx += (dx / dist) * force * 0.08;
+                            p.vy += (dy / dist) * force * 0.08;
+                        }
+                    }
+
+                    p.vx *= 0.98;
+                    p.vy *= 0.98;
+                    if (p.x < -20) p.x = w + 20;
+                    if (p.x > w + 20) p.x = -20;
+                    if (p.y < -20) p.y = h + 20;
+                    if (p.y > h + 20) p.y = -20;
+
+                    ctx.beginPath();
+                    ctx.fillStyle = 'rgba(' + rgb.r + ',' + rgb.g + ',' + rgb.b + ',' + (0.28 + p.r / 12) + ')';
+                    ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+
+                ctx.lineWidth = 1;
+                for (var a = 0; a < particles.length; a++) {
+                    for (var b = a + 1; b < particles.length; b++) {
+                        var pa = particles[a];
+                        var pb = particles[b];
+                        var ddx = pa.x - pb.x;
+                        var ddy = pa.y - pb.y;
+                        var gap = ddx * ddx + ddy * ddy;
+                        if (gap < 130 * 130) {
+                            var alpha = 0.18 * (1 - Math.sqrt(gap) / 130);
+                            ctx.strokeStyle = 'rgba(' + rgb.r + ',' + rgb.g + ',' + rgb.b + ',' + alpha + ')';
+                            ctx.beginPath();
+                            ctx.moveTo(pa.x, pa.y);
+                            ctx.lineTo(pb.x, pb.y);
+                            ctx.stroke();
+                        }
+                    }
+                }
+
+                if (mouse.active) {
+                    var halo = ctx.createRadialGradient(mouse.x, mouse.y, 0, mouse.x, mouse.y, 120);
+                    halo.addColorStop(0, 'rgba(' + rgb.r + ',' + rgb.g + ',' + rgb.b + ',0.18)');
+                    halo.addColorStop(1, 'rgba(' + rgb.r + ',' + rgb.g + ',' + rgb.b + ',0)');
+                    ctx.fillStyle = halo;
+                    ctx.beginPath();
+                    ctx.arc(mouse.x, mouse.y, 120, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+
+                raf = requestAnimationFrame(tick);
+            }
+
+            sizeCanvas();
+            spawn();
+            if (reduced) {
+                tick();
+                cancelAnimationFrame(raf);
+                return;
+            }
+
+            window.addEventListener('resize', function () {
+                sizeCanvas();
+                spawn();
+            });
+            window.addEventListener('pointermove', function (e) {
+                mouse.x = e.clientX;
+                mouse.y = e.clientY;
+                mouse.active = true;
+            });
+            window.addEventListener('pointerleave', function () {
+                mouse.active = false;
+            });
+            document.addEventListener('mouseleave', function () {
+                mouse.active = false;
+            });
+            tick();
+        })();
+
+        (function () {
+            var combo = document.querySelector('[data-login-combo]');
+            if (combo) {
+                var input = combo.querySelector('#username');
+                var toggle = combo.querySelector('.login-combo-toggle');
+                var menu = combo.querySelector('.login-combo-menu');
+                var options = combo.querySelectorAll('.login-combo-option');
+
+                function closeMenu() {
+                    if (!menu) return;
+                    menu.hidden = true;
+                    if (toggle) toggle.setAttribute('aria-expanded', 'false');
+                }
+
+                function openMenu() {
+                    if (!menu) return;
+                    menu.hidden = false;
+                    if (toggle) toggle.setAttribute('aria-expanded', 'true');
+                }
+
+                function filterOptions() {
+                    if (!input) return;
+                    var q = (input.value || '').trim().toLowerCase();
+                    options.forEach(function (btn) {
+                        var row = btn.closest('li');
+                        var hay = (btn.getAttribute('data-filter') || '').toLowerCase();
+                        var show = !q || hay.indexOf(q) !== -1;
+                        if (row) row.hidden = !show;
+                    });
+                }
+
+                if (toggle && menu) {
+                    toggle.addEventListener('click', function () {
+                        if (menu.hidden) {
+                            options.forEach(function (btn) {
+                                var row = btn.closest('li');
+                                if (row) row.hidden = false;
+                            });
+                            openMenu();
+                        } else {
+                            closeMenu();
+                        }
+                    });
+                }
+
+                options.forEach(function (btn) {
+                    btn.addEventListener('click', function (e) {
+                        e.preventDefault();
+                        if (input) input.value = btn.getAttribute('data-username') || '';
+                        closeMenu();
+                        var pin = document.getElementById('loginPassword');
+                        if (pin) pin.focus();
+                    });
+                });
+
+                if (input) {
+                    input.addEventListener('input', function () {
+                        if (!menu) return;
+                        filterOptions();
+                        openMenu();
+                    });
+                    input.addEventListener('focus', function () {
+                        if (menu && options.length) openMenu();
+                    });
+                }
+
+                document.addEventListener('click', function (e) {
+                    if (!combo.contains(e.target)) closeMenu();
+                });
+            }
+
+            var pin = document.getElementById('loginPassword');
+            if (pin) {
+                pin.addEventListener('input', function () {
+                    this.value = this.value.replace(/\D/g, '').slice(0, 4);
+                });
+            }
+        })();
+
+        (function () {
+            var list = document.getElementById('loginFeatures');
+            if (!list) return;
+            var items = list.querySelectorAll('.login-feature');
+            if (items.length < 2) return;
+            if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+            var index = 0;
+            setInterval(function () {
+                items[index].classList.remove('is-active');
+                index = (index + 1) % items.length;
+                items[index].classList.add('is-active');
+            }, 3200);
+        })();
+    </script>
 </body>
 </html>

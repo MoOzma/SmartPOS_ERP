@@ -5,13 +5,23 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <UserSecretsId>aspnet-SmartPOS_ERP-6753d5fe-752e-44f1-8bbd-d4edb8acf4db</UserSecretsId>
+    <ApplicationIcon>wwwroot\favicon.ico</ApplicationIcon>
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="BCrypt.Net-Next" Version="4.1.0" />
-    <PackageReference Include="Microsoft.AspNetCore.Diagnostics.EntityFrameworkCore" Version="10.0.3" />
-    <PackageReference Include="Microsoft.AspNetCore.Identity.EntityFrameworkCore" Version="10.0.3" />
-    <PackageReference Include="Microsoft.AspNetCore.Identity.UI" Version="10.0.3" />
+    <Compile Remove="Launcher\**\*.cs" />
+    <None Include="Launcher\StartPos.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Content Include="start-pos.cmd" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+    <Content Include="install-shortcuts.cmd" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+    <Content Include="install-shortcuts.ps1" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+  </ItemGroup>
+
+  <ItemGroup>
+      <PackageReference Include="BCrypt.Net-Next" Version="4.1.0" />
+      <PackageReference Include="Microsoft.AspNetCore.Diagnostics.EntityFrameworkCore" Version="10.0.3" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="10.0.3">
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
@@ -20,5 +30,19 @@
     <PackageReference Include="Microsoft.EntityFrameworkCore.Tools" Version="10.0.3" />
     <PackageReference Include="Microsoft.VisualStudio.Web.CodeGeneration.Design" Version="10.0.2" />
   </ItemGroup>
+
+  <PropertyGroup>
+    <CscExe Condition="Exists('$(windir)\Microsoft.NET\Framework64\v4.0.30319\csc.exe')">$(windir)\Microsoft.NET\Framework64\v4.0.30319\csc.exe</CscExe>
+  </PropertyGroup>
+
+  <Target Name="CompileStartPosLauncher" AfterTargets="Build" Condition="'$(CscExe)' != ''">
+    <Exec Command="&quot;$(CscExe)&quot; /nologo /t:winexe /platform:anycpu /win32icon:&quot;$(MSBuildThisFileDirectory)wwwroot\favicon.ico&quot; /out:&quot;$(TargetDir)Start-POS.exe&quot; /r:System.dll /r:System.Core.dll &quot;$(MSBuildThisFileDirectory)Launcher\StartPos.cs&quot;" />
+    <Copy SourceFiles="$(MSBuildThisFileDirectory)wwwroot\favicon.ico" DestinationFiles="$(TargetDir)app.ico" SkipUnchangedFiles="true" />
+  </Target>
+
+  <Target Name="PublishStartPosLauncher" AfterTargets="Publish" Condition="Exists('$(TargetDir)Start-POS.exe')">
+    <Copy SourceFiles="$(TargetDir)Start-POS.exe" DestinationFiles="$(PublishDir)Start-POS.exe" />
+    <Copy SourceFiles="$(MSBuildThisFileDirectory)wwwroot\favicon.ico" DestinationFiles="$(PublishDir)app.ico" />
+  </Target>
 
 </Project>

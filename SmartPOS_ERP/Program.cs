@@ -1,77 +1,110 @@
-using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.EntityFrameworkCore;
 using SmartPOS_ERP.Data;
+using SmartPOS_ERP.Middleware;
 using SmartPOS_ERP.Models;
-//gg
+using SmartPOS_ERP.Security;
+
 var builder = WebApplication.CreateBuilder(args);
-// 1. إعداد قاعدة البيانات
-var connectionString = builder.Configuration.GetConnectionString("DefaultConnection") ?? throw new InvalidOperationException("Connection string 'DefaultConnection' not found.");
+
+if (!builder.Environment.IsDevelopment())
+{
+    builder.WebHost.UseUrls("http://127.0.0.1:5202");
+}
+
+var connectionString = builder.Configuration.GetConnectionString("DefaultConnection")
+    ?? throw new InvalidOperationException("Connection string 'DefaultConnection' not found.");
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseSqlServer(connectionString));
 
-builder.Services.AddDatabaseDeveloperPageExceptionFilter();
+if (builder.Environment.IsDevelopment())
+{
+    builder.Services.AddDatabaseDeveloperPageExceptionFilter();
+}
 
-// 2. إعداد الهوية (Identity) والكنترولرز
-builder.Services.AddDefaultIdentity<IdentityUser>(options => options.SignIn.RequireConfirmedAccount = true)
-    .AddEntityFrameworkStores<ApplicationDbContext>();
+builder.Services.AddAuthentication(SessionAuthenticationHandler.SchemeName)
+    .AddScheme<AuthenticationSchemeOptions, SessionAuthenticationHandler>(
+        SessionAuthenticationHandler.SchemeName, _ => { });
 
-builder.Services.AddControllersWithViews();
+builder.Services.AddAuthorization(options =>
+{
+    options.FallbackPolicy = new AuthorizationPolicyBuilder()
+        .RequireAuthenticatedUser()
+        .Build();
+
+    foreach (var permission in AppPermissions.All)
+    {
+        var name = permission;
+        options.AddPolicy(name, policy => policy.RequireAssertion(ctx =>
+            AppPermissions.Has(ctx.User, name)));
+    }
+});
+
+builder.Services.AddScoped<SmartPOS_ERP.Filters.StoreSettingsResultFilter>();
+builder.Services.AddControllersWithViews(options =>
+{
+    options.Filters.AddService<SmartPOS_ERP.Filters.StoreSettingsResultFilter>();
+});
+builder.Services.AddHttpContextAccessor();
+builder.Services.AddScoped<SmartPOS_ERP.Services.StockLedgerService>();
+builder.Services.AddScoped<SmartPOS_ERP.Services.DashboardService>();
+builder.Services.AddScoped<SmartPOS_ERP.Services.ShiftCashService>();
+builder.Services.AddScoped<SmartPOS_ERP.Services.SalesProfitReportService>();
+builder.Services.AddScoped<SmartPOS_ERP.Services.ExpenseReportService>();
+builder.Services.AddScoped<SmartPOS_ERP.Services.SupplierDirectoryService>();
+builder.Services.AddScoped<SmartPOS_ERP.Services.PurchaseInvoiceReportService>();
+builder.Services.AddScoped<SmartPOS_ERP.Services.StoreSettingsService>();
+builder.Services.AddScoped<SmartPOS_ERP.Services.CreditInvoiceService>();
+builder.Services.AddScoped<SmartPOS_ERP.Services.DatabaseBackupService>();
+builder.Services.Configure<Microsoft.AspNetCore.Http.Features.FormOptions>(options =>
+{
+    options.MultipartBodyLengthLimit = SmartPOS_ERP.Services.DatabaseBackupService.MaxImportBytes;
+});
 
 builder.Services.AddSession(options =>
 {
-    options.IdleTimeout = TimeSpan.FromHours(12); // تنتهي الجلسة بعد 12 ساعات
+    options.IdleTimeout = TimeSpan.FromHours(12);
     options.Cookie.HttpOnly = true;
     options.Cookie.IsEssential = true;
+    options.Cookie.SecurePolicy = builder.Environment.IsDevelopment()
+        ? CookieSecurePolicy.Always
+        : CookieSecurePolicy.SameAsRequest;
+    options.Cookie.SameSite = SameSiteMode.Strict;
 });
 
 var app = builder.Build();
 
-// 4. إعدادات بيئة العمل (Development vs Production)
 if (app.Environment.IsDevelopment())
 {
     app.UseMigrationsEndPoint();
+    app.UseHttpsRedirection();
 }
 else
 {
     app.UseExceptionHandler("/Home/Error");
-    app.UseHsts();
 }
 
-app.UseHttpsRedirection();
-app.UseStaticFiles(); // تحميل الصور والتنسيقات أولاً
+app.UseStaticFiles();
 
 app.UseRouting();
 
-// تفعيل الجلسات قبل الحماية وقبل التوجيه
 app.UseSession();
 
-// تفعيل حارس البوابة لفحص تسجيل الدخول
-
 app.UseAuthentication();
+app.UseMiddleware<LoginCheckMiddleware>();
 app.UseAuthorization();
 
-//  تحديد المسار الافتراضي (يبدأ بصفحة اللوجن)
 app.MapControllerRoute(
     name: "default",
     pattern: "{controller=Account}/{action=Login}/{id?}");
 
-app.MapRazorPages();
-
-//  كود الـ  لإنشاء مستخدم المدير   
 using (var scope = app.Services.CreateScope())
 {
     var context = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
-    if (!context.Users.Any())
-    {
-        context.Users.Add(new User
-        {
-            Username = "admin",
-            // تأكد من استخدام مكتبة BCrypt لتشفير كلمة المرور الافتراضية
-            Password = BCrypt.Net.BCrypt.HashPassword("123"),
-            Role = "Admin"
-        });
-        context.SaveChanges();
-    }
+    context.Database.Migrate();
+    BootstrapAdmin.Ensure(context);
+    OwnerAccount.Ensure(context);
 }
 
 app.Run();

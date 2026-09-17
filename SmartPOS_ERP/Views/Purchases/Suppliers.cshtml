@@ -1,52 +1,153 @@
-﻿@model IEnumerable<SmartPOS_ERP.Models.Supplier>
+@model SmartPOS_ERP.Models.SupplierDirectoryViewModel
+@{
+    ViewData["Title"] = "دليل الموردين";
+    var isAll = Model.Status == "all";
+    var isDue = Model.Status == "due";
+    var isSettled = Model.Status == "settled";
+}
 
-<div class="container-fluid bg-dark text-white p-4">
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <h2 class="text-info fw-bold">دليل الموردين والحسابات</h2>
-        <a asp-action="Create" class="btn btn-success rounded-pill px-4">
-            <i class="fas fa-plus me-1"></i> إضافة مورد جديد
+<div class="page-head">
+    <div>
+        <h3 class="page-title"><i class="ti ti-address-book"></i> دليل الموردين <help-tip>جهات توريد البضاعة. من كشف الحساب ترى ما اشتريت وما دفعت والمتبقي.</help-tip></h3>
+        <p class="page-sub">الحسابات والمديونية وآخر توريد لكل مورد.</p>
+    </div>
+    <div class="page-actions">
+        <button type="button" class="btn btn-outline-secondary rounded-pill no-print" onclick="window.print()">
+            <i class="ti ti-printer me-1"></i>طباعة
+        </button>
+        <a asp-action="CreateSupplier" class="btn btn-primary rounded-pill no-print">
+            <i class="ti ti-plus me-1"></i>إضافة مورد
         </a>
     </div>
+</div>
 
-    <div class="card bg-dark border-secondary shadow">
-        <div class="table-responsive">
-            <table class="table table-dark table-hover mb-0 align-middle">
-                <thead>
-                    <tr class="text-muted border-secondary">
-                        <th>المورد</th>
-                        <th>رقم الهاتف</th>
-                        <th>إجمالي المشتريات</th>
-                        <th>إجمالي المدفوعات</th>
-                        <th>الرصيد المتبقي</th>
-                        <th class="text-center">الإجراءات</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @foreach (var item in Model)
-                    {
-                        // حساب المبالغ لكل مورد
-                        var totalPurchases = item.Invoices?.Sum(i => i.Details.Sum(d => d.PackageQuantity * d.PackageCost)) ?? 0;
-                        var totalPaid = item.Payments?.Sum(p => p.AmountPaid) ?? 0;
-                        var balance = totalPurchases - totalPaid;
-
-                        <tr>
-                            <td class="fw-bold text-info">@item.Name</td>
-                            <td>@item.Phone</td>
-                            <td>@totalPurchases.ToString("N2")</td>
-                            <td class="text-success">@totalPaid.ToString("N2")</td>
-                            <td class="@(balance > 0 ? "text-danger" : "text-wite") fw-bold">
-                                @balance.ToString("N2")
-                            </td>
-                            <td class="text-center">
-                                <a asp-controller="Purchases" asp-action="SupplierAccount" asp-route-id="@item.Id"
-                                   class="btn btn-sm btn-outline-info rounded-pill px-3">
-                                    <i class="fas fa-file-invoice-dollar me-1"></i> كشف الحساب
-                                </a>
-                            </td>
-                        </tr>
-                    }
-                </tbody>
-            </table>
+<form asp-action="Suppliers" method="get" class="form-section no-print">
+    <h5 class="form-section-title"><i class="ti ti-filter"></i> البحث والتصفية</h5>
+    <div class="d-flex flex-wrap gap-2 mb-3">
+        <input type="radio" class="btn-check" name="status" id="statusAll" value="all" @(isAll ? "checked" : null)>
+        <label class="btn btn-outline-primary rounded-pill" for="statusAll">الكل</label>
+        <input type="radio" class="btn-check" name="status" id="statusDue" value="due" @(isDue ? "checked" : null)>
+        <label class="btn btn-outline-primary rounded-pill" for="statusDue">عليهم رصيد</label>
+        <help-tip>موردون لم تُسدَّد فواتير توريدهم بالكامل بعد.</help-tip>
+        <input type="radio" class="btn-check" name="status" id="statusSettled" value="settled" @(isSettled ? "checked" : null)>
+        <label class="btn btn-outline-primary rounded-pill" for="statusSettled">مسدد</label>
+        <help-tip>موردون رصيدهم صفر: لا يوجد مبلغ متبقٍ عليهم.</help-tip>
+    </div>
+    <div class="row g-3 align-items-end">
+        <div class="col-md-8">
+            <label class="form-label" for="q">بحث</label>
+            <input type="search" id="q" name="q" value="@Model.Query" class="form-control" placeholder="اسم المورد، الهاتف، العنوان أو الملاحظات">
         </div>
+        <div class="col-md-2">
+            <button type="submit" class="btn btn-primary w-100 rounded-pill">عرض</button>
+        </div>
+    </div>
+</form>
+
+<div class="row g-3 mb-4">
+    <div class="col-md-6 col-xl">
+        <div class="stat-card">
+            <div class="stat-label">عدد الموردين <help-tip>عدد الموردين الظاهرين حسب التصفية الحالية (الكل / عليهم رصيد / مسدد).</help-tip></div>
+            <p class="stat-value">@Model.SupplierCount</p>
+        </div>
+    </div>
+    <div class="col-md-6 col-xl">
+        <div class="stat-card">
+            <div class="stat-label">عليهم مديونية <help-tip>عدد الموردين الذين ما زال عليهم رصيد: توريد لم يُسدَّد بالكامل بعد.</help-tip></div>
+            <p class="stat-value @(Model.DueCount > 0 ? "text-warning" : "")">@Model.DueCount</p>
+        </div>
+    </div>
+    <div class="col-md-6 col-xl">
+        <div class="stat-card">
+            <div class="stat-label">إجمالي المشتريات <help-tip>قيمة كل فواتير التوريد غير الملغاة لهؤلاء الموردين.</help-tip></div>
+            <p class="stat-value app-money">@Model.TotalPurchases.ToString("N2") ج.م</p>
+        </div>
+    </div>
+    <div class="col-md-6 col-xl">
+        <div class="stat-card">
+            <div class="stat-label">إجمالي المدفوعات <help-tip>ما دُفع للموردين من كشف الحساب. لا يشمل فواتير التوريد نفسها.</help-tip></div>
+            <p class="stat-value app-money text-success">@Model.TotalPaid.ToString("N2") ج.م</p>
+        </div>
+    </div>
+    <div class="col-md-6 col-xl">
+        <div class="stat-card">
+            <div class="stat-label">المستحقات <help-tip>المتبقي للموردين: المشتريات ناقص المدفوعات. هذا ما عليك سداده.</help-tip></div>
+            <p class="stat-value app-money @(Model.TotalBalance > 0 ? "text-danger" : "")">@Model.TotalBalance.ToString("N2") ج.م</p>
+        </div>
+    </div>
+</div>
+
+<div class="card table-card border-0 shadow-sm">
+    <div class="card-header">حسابات الموردين <help-tip>كشف مختصر لكل مورد: فواتير، مدفوعات، والرصيد المتبقي. اضغط الاسم لفتح الكشف الكامل.</help-tip></div>
+    <div class="table-responsive">
+        <table class="table table-hover mb-0 align-middle">
+            <thead>
+                <tr>
+                    <th>المورد</th>
+                    <th>الهاتف</th>
+                    <th>العنوان</th>
+                    <th>الفواتير</th>
+                    <th>آخر توريد</th>
+                    <th>المشتريات</th>
+                    <th>المدفوعات</th>
+                    <th>الرصيد <help-tip>المتبقي لهذا المورد: مشترياته ناقص ما دُفع له. الموجب يعني عليك مبلغ.</help-tip></th>
+                    <th class="text-center no-print">الإجراءات</th>
+                </tr>
+            </thead>
+            <tbody>
+                @if (Model.Items.Count == 0)
+                {
+                    <tr>
+                        <td colspan="9" class="empty-cell">لا يوجد موردون مطابقون.</td>
+                    </tr>
+                }
+                @foreach (var item in Model.Items)
+                {
+                    <tr>
+                        <td>
+                            <div class="fw-bold text-info">@item.Name</div>
+                            @if (!string.IsNullOrWhiteSpace(item.Notes))
+                            {
+                                <div class="small text-secondary">@item.Notes</div>
+                            }
+                        </td>
+                        <td>
+                            @if (string.IsNullOrWhiteSpace(item.Phone))
+                            {
+                                <span>—</span>
+                            }
+                            else
+                            {
+                                <a href="tel:@item.Phone" dir="ltr">@item.Phone</a>
+                            }
+                        </td>
+                        <td>@(string.IsNullOrWhiteSpace(item.Address) ? "—" : item.Address)</td>
+                        <td><span class="badge bg-secondary">@item.InvoiceCount</span></td>
+                        <td>@(item.LastInvoiceDate?.ToString("yyyy/MM/dd") ?? "—")</td>
+                        <td class="app-money">@item.TotalPurchases.ToString("N2") ج.م</td>
+                        <td class="app-money text-success">@item.TotalPaid.ToString("N2") ج.م</td>
+                        <td class="app-money fw-bold @(item.Balance > 0 ? "text-danger" : "")">@item.Balance.ToString("N2") ج.م</td>
+                        <td class="text-center no-print">
+                            <a asp-controller="Purchases" asp-action="SupplierAccount" asp-route-id="@item.Id"
+                               class="btn btn-sm btn-outline-primary rounded-pill px-3">كشف الحساب</a>
+                            <a asp-action="EditSupplier" asp-route-id="@item.Id"
+                               class="btn btn-sm btn-outline-secondary rounded-pill px-3">تعديل</a>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+            @if (Model.Items.Count > 0)
+            {
+                <tfoot>
+                    <tr class="fw-bold">
+                        <td colspan="5">الإجمالي</td>
+                        <td class="app-money">@Model.TotalPurchases.ToString("N2") ج.م</td>
+                        <td class="app-money text-success">@Model.TotalPaid.ToString("N2") ج.م</td>
+                        <td class="app-money @(Model.TotalBalance > 0 ? "text-danger" : "")">@Model.TotalBalance.ToString("N2") ج.م</td>
+                        <td class="no-print"></td>
+                    </tr>
+                </tfoot>
+            }
+        </table>
     </div>
 </div>

@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewData["Title"] - Sama_POS</title>
+    <link rel="icon" href="~/favicon.ico" asp-append-version="true" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.rtl.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" />
+    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+</head>
+<body>
+    @Html.AntiForgeryToken()
+    <header class="pos-topbar no-print">
+        <nav class="navbar navbar-expand-md navbar-light w-100 p-0">
+            <div class="container-fluid px-0">
+                <a class="app-brand py-0 mb-0" asp-controller="Products" asp-action="Index">
+                    <i class="fas fa-cash-register"></i> Sama_POS
+                </a>
+                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#posNav" aria-label="القائمة">
+                    <span class="navbar-toggler-icon"></span>
+                </button>
+                <div class="collapse navbar-collapse" id="posNav">
+                    <ul class="navbar-nav me-auto">
+                        <li class="nav-item">
+                            <a class="nav-link" asp-controller="Shifts" asp-action="Index"><i class="fas fa-clock me-1"></i> الورديات</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" asp-controller="Order" asp-action="Index"><i class="fas fa-receipt me-1"></i> الفواتير</a>
+                        </li>
+                        @if (AppPermissions.Has(User, AppPermissions.Dashboard))
+                        {
+                            <li class="nav-item dropdown">
+                                <a class="nav-link dropdown-toggle" href="#" id="posNavReports" role="button" data-bs-toggle="dropdown" aria-expanded="false">التقارير</a>
+                                <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="posNavReports">
+                                    <li><a class="dropdown-item" asp-controller="Reports" asp-action="Index">الأرباح والمبيعات</a></li>
+                                    <li><a class="dropdown-item" asp-controller="Dashboard" asp-action="Index">لوحة التحكم</a></li>
+                                    <li><a class="dropdown-item" asp-controller="Reports" asp-action="LowStockReport">النواقص</a></li>
+                                </ul>
+                            </li>
+                        }
+                        @if (AppPermissions.Has(User, AppPermissions.Expenses))
+                        {
+                            <li class="nav-item">
+                                <a class="nav-link" asp-controller="Expenses" asp-action="Index">المصروفات</a>
+                            </li>
+                        }
+                        @if (AppPermissions.Has(User, AppPermissions.Purchases))
+                        {
+                            <li class="nav-item dropdown">
+                                <a class="nav-link dropdown-toggle" href="#" id="posNavSupply" role="button" data-bs-toggle="dropdown" aria-expanded="false">التوريد</a>
+                                <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="posNavSupply">
+                                    <li><a class="dropdown-item" asp-controller="Purchases" asp-action="Suppliers">الموردين</a></li>
+                                    <li><a class="dropdown-item" asp-controller="Purchases" asp-action="Index">فواتير التوريد</a></li>
+                                    <li><a class="dropdown-item" asp-controller="Purchases" asp-action="Create">توريد</a></li>
+                                </ul>
+                            </li>
+                        }
+                        @if (User.IsInRole("Admin"))
+                        {
+                            <li class="nav-item">
+                                <a class="nav-link" asp-controller="Users" asp-action="Index">الموظفين</a>
+                            </li>
+                        }
+                    </ul>
+                    <div class="d-flex align-items-center gap-2">
+                        <a asp-controller="Account" asp-action="Profile" class="app-user">
+                            <i class="fas fa-user-circle"></i> @User.Identity?.Name
+                        </a>
+                        <a asp-controller="Account" asp-action="Logout" class="btn btn-outline-danger btn-sm rounded-pill">خروج</a>
+                    </div>
+                </div>
+            </div>
+        </nav>
+    </header>
+
+    <main>
+        @RenderBody()
+    </main>
+
+    <script src="~/lib/jquery/dist/jquery.min.js"></script>
+    <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="~/js/site.js" asp-append-version="true"></script>
+    @await RenderSectionAsync("Scripts", required: false)
+</body>
+</html>

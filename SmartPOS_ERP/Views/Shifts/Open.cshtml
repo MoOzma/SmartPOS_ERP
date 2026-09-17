@@ -1,0 +1,40 @@
+@model SmartPOS_ERP.Models.Shift
+
+@{
+    ViewData["Title"] = "فتح وردية";
+}
+
+<div class="form-stack">
+    <div class="card border-0 shadow-sm">
+        <div class="card-header bg-transparent border-secondary py-3">
+            <h4 class="text-info mb-1"><i class="ti ti-player-play me-2"></i>فتح وردية جديدة <help-tip>ابدأ وردية بإدخال نقد الدرج الحالي (العهدة) قبل أي بيع.</help-tip></h4>
+            <p class="text-secondary small mb-0">أدخل عهدة الدرج قبل بدء البيع.</p>
+        </div>
+        <div class="card-body p-4">
+            @if (TempData["Error"] != null)
+            {
+                <div class="alert alert-danger">@TempData["Error"]</div>
+            }
+            <form asp-action="Open" method="post">
+                <div asp-validation-summary="ModelOnly" class="alert alert-danger mb-3"></div>
+                <section class="form-section">
+                    <h5 class="form-section-title"><i class="ti ti-cash"></i> بيانات الفتح</h5>
+                    <div class="mb-3">
+                        <label asp-for="OpeningCash" class="form-label"></label>
+                        <help-tip>المبلغ النقدي الموجود في الدرج الآن قبل بدء البيع. يُستخدم لحساب المتوقع عند الإقفال.</help-tip>
+                        <input asp-for="OpeningCash" type="number" step="0.01" min="0" class="form-control" required />
+                        <span asp-validation-for="OpeningCash" class="text-danger small"></span>
+                    </div>
+                    <div class="mb-3">
+                        <label asp-for="Notes" class="form-label"></label>
+                        <textarea asp-for="Notes" class="form-control" rows="3"></textarea>
+                    </div>
+                </section>
+                <div class="d-flex gap-2">
+                    <button type="submit" class="btn btn-primary rounded-pill px-4 fw-bold">فتح الوردية</button>
+                    <a asp-action="Index" class="btn btn-outline-secondary rounded-pill px-4">إلغاء</a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>

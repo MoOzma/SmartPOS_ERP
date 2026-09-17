@@ -1,378 +1,1128 @@
 ﻿@model IEnumerable<SmartPOS_ERP.Models.Product>
+@{
+    ViewData["Title"] = "شاشة البيع";
+    ViewData["DensePage"] = true;
+    var openShiftId = ViewBag.OpenShiftId as int?;
+    var openCreditCount = ViewBag.OpenCreditCount as int? ?? 0;
+    var settings = ViewData["StoreSettings"] as StoreSettings ?? new StoreSettings();
+}
 
-<div class="container-fluid bg-dark text-white" style="min-height: 100vh; background-color: #1a1d21 !important;">
-    <div class="row">
-        <div class="col-md-8 p-4">
-            <div class="d-flex flex-wrap justify-content-between align-items-center mb-4 p-3 rounded shadow-sm" style="background-color: #25292e;">
-                <div class="d-flex align-items-center gap-3">
-                    <h3 class="text-info fw-bold mb-0">المنتجات</h3>
-                    <div class="vr bg-secondary mx-2" style="height: 30px;"></div>
-                    <span class="text-white small">أهلاً، <strong class="text-warning">@Context.Session.GetString("UserName")</strong></span>
-                </div>
-
-                <div class="flex-grow-1 mx-lg-4 my-2 my-lg-0" style="max-width: 450px;">
-                    <div class="input-group">
-                        <input type="text" id="searchInput" class="form-control bg-white text-black border-secondary rounded-end-pill px-3"
-                               placeholder="مرر الباركود أو ابحث بالاسم..." autofocus>
-                        <span class="input-group-text bg-dark border-secondary text-info"><i class="fas fa-search"></i></span>
-                    </div>
-                </div>
-
-                <div class="d-flex gap-2">
-                    @if (Context.Session.GetString("UserRole") == "Admin")
+<div class="container-fluid pos-screen px-3 px-md-4 py-3">
+    <div class="row g-3">
+        <div class="col-md-8">
+            <div class="d-flex flex-wrap justify-content-between align-items-center mb-3 p-3 pos-toolbar">
+                <div class="d-flex align-items-center gap-2 mb-2 mb-md-0">
+                    <h3 class="text-info fw-bold mb-0">المنتجات <help-tip>شاشة البيع: ابحث بالباركود أو الاسم، أضف للسلة، ثم ادفع. يجب فتح وردية أولاً.</help-tip></h3>
+                    @if (openShiftId.HasValue)
                     {
-                        <a asp-action="Create" class="btn btn-sm btn-outline-info rounded-pill px-3"> + إضافة جديد </a>
+                        <a asp-controller="Shifts" asp-action="Details" asp-route-id="@openShiftId" class="badge bg-success text-decoration-none">وردية مفتوحة #@openShiftId</a>
+                    }
+                    else
+                    {
+                        <a asp-controller="Shifts" asp-action="Open" class="badge bg-secondary text-decoration-none">لا توجد وردية</a>
                     }
                 </div>
+
+                <div class="flex-grow-1 mx-md-3" style="min-width: 220px; max-width: 450px;">
+                    <div class="input-group">
+                        <span class="input-group-text"><i class="ti ti-search"></i></span>
+                        <input type="text" id="searchInput" class="form-control" placeholder="باركود أو اسم المنتج..." autofocus autocomplete="off">
+                    </div>
+                    <div id="posMessage" class="small text-warning mt-1" style="min-height: 1.2em;"></div>
+                </div>
+
+                @if (AppPermissions.Has(User, AppPermissions.Products))
+                {
+                    <a asp-action="Create" class="btn btn-sm btn-outline-info rounded-pill px-3">إضافة منتج</a>
+                    <a asp-action="Import" class="btn btn-sm btn-outline-secondary rounded-pill px-3">استيراد</a>
+                    <a asp-controller="Inventory" asp-action="Index" class="btn btn-sm btn-outline-secondary rounded-pill px-3">جرد</a>
+                }
+                <button type="button" id="openCreditBtn" class="btn btn-sm btn-outline-warning rounded-pill px-3">
+                    <i class="ti ti-notebook me-1"></i>الآجل
+                    <span id="openCreditCount" class="badge text-bg-warning">@openCreditCount</span>
+                </button>
             </div>
+
+            @{
+                var categories = Model
+                    .Where(p => !string.IsNullOrWhiteSpace(p.Category))
+                    .Select(p => p.Category!)
+                    .Distinct()
+                    .OrderBy(c => c)
+                    .ToList();
+            }
+            @if (categories.Count > 0)
+            {
+                <div class="d-flex flex-wrap gap-2 mb-3" id="categoryChips">
+                    <button type="button" class="btn btn-sm btn-primary rounded-pill js-cat-filter" data-category="">الكل</button>
+                    @foreach (var category in categories)
+                    {
+                        <button type="button" class="btn btn-sm btn-outline-primary rounded-pill js-cat-filter" data-category="@category">@category</button>
+                    }
+                </div>
+            }
 
             <div class="row" id="productGrid">
                 @foreach (var item in Model)
                 {
-                    string statusBorder = item.StockQuantity <= 0 ? "border-danger" : (item.StockQuantity < 5 ? "border-warning" : "border-secondary");
+                    var available = !item.TrackInventory || item.StockQuantity > 0;
+                    var low = item.TrackInventory && item.StockQuantity > 0 && item.StockQuantity <= item.ReorderLevel;
+                    var unitLabel = item.Unit == "Kilo" ? "كجم" : "قطعة";
+                    var effectiveTax = StoreSettingsService.EffectiveTaxRate(item, settings);
+                    var expired = item.ExpiryDate is DateTime expiry && expiry.Date < DateTime.Today;
+                    var expiring = item.ExpiryDate is DateTime soon && soon.Date >= DateTime.Today && soon.Date <= DateTime.Today.AddDays(7);
 
-                    <div class="col-xl-3 col-lg-4 col-md-6 mb-4">
-                        <div id="product-card-@item.Id" class="card h-100 product-card shadow-lg bg-dark text-white border-2 @statusBorder" style="border-radius: 12px; overflow: hidden; position: relative;">
-
-                            @if (Context.Session.GetString("UserRole") == "Admin")
-                            {
-                                
-                                <a asp-action="Edit" asp-route-id="@item.Id" class="btn btn-sm btn-warning"
-                                   style="position: absolute; top: 10px; right: 10px; z-index: 10; border-radius: 50%; width: 30px; height: 30px; display: flex; align-items: center; justify-content: center; opacity: 0.9;">
-                                    <i class="fas fa-edit fa-xs"></i>
-                                </a>
-                                
-                                <a asp-action="ProductHistory" asp-route-id="@item.Id" class="btn btn-sm btn-warning " title="سجل الحركة"
-                                   style="position: absolute; top:50px; right: 10px; z-index: 10; border-radius: 50%; width: 30px; height: 30px; display: flex; align-items: center; justify-content: center; opacity: 0.9;">
-                                    <i class="fas fa-list-ul"></i>
-                                </a>
-                              
-                            }
-
-                            <div class="card-body d-flex flex-column text-center p-3" style="cursor: pointer;"
-                                 onclick="validateProductSelection('@item.Id', '@item.Name', '@item.SalePrice','@item.Unit')">
-                                <h6 class="card-title text-white fw-bold mb-2 mt-2">@item.Name</h6>
-                                <h5 class="text-info fw-bold my-2">@item.SalePrice.ToString("N2") LE</h5>
-                                <div class="mt-auto">
-                                     <span class="badge @(item.StockQuantity <= 0 ? "bg-danger" : "bg-dark border border-secondary") text-white w-100 py-2">
-                                        المخزون: @item.StockQuantity @(item.Unit.ToString() == "Kilo" ? "كجم" : "قطعة")
-                                    </span> 
+                    <div class="col-xl-3 col-lg-4 col-md-6 mb-3 product-col"
+                         data-id="@item.Id"
+                         data-name="@item.Name"
+                         data-barcode="@(item.Barcode ?? "")"
+                         data-price="@item.SalePrice.ToString(System.Globalization.CultureInfo.InvariantCulture)"
+                         data-tax="@effectiveTax.ToString(System.Globalization.CultureInfo.InvariantCulture)"
+                         data-unit="@item.Unit"
+                         data-stock="@item.StockQuantity.ToString(System.Globalization.CultureInfo.InvariantCulture)"
+                         data-track="@item.TrackInventory.ToString().ToLowerInvariant()"
+                         data-reorder="@item.ReorderLevel"
+                         data-category="@(item.Category ?? "")"
+                         data-pinned="@(item.IsPinned ? "true" : "false")">
+                        <div id="product-card-@item.Id" class="card h-100 product-card @(available ? "" : "is-out") @(low ? "is-low" : "") @(item.IsPinned ? "is-pinned" : "")">
+                            <div class="product-card-head">
+                                <h6 class="product-name mb-0">@item.Name</h6>
+                                <div class="product-card-actions">
+                                    <button type="button"
+                                            class="icon-btn product-pin-btn js-pin-product @(item.IsPinned ? "is-on" : "")"
+                                            data-id="@item.Id"
+                                            title="@(item.IsPinned ? "إلغاء التثبيت" : "تثبيت أعلى القائمة")"
+                                            aria-pressed="@(item.IsPinned ? "true" : "false")">
+                                        <i class="ti @(item.IsPinned ? "ti-pinned-filled" : "ti-pin")"></i>
+                                    </button>
+                                    @if (AppPermissions.Has(User, AppPermissions.Products))
+                                    {
+                                        <div class="dropdown product-menu" onclick="event.stopPropagation()">
+                                            <button class="icon-btn product-menu-btn" type="button" data-bs-toggle="dropdown" aria-expanded="false" title="إجراءات">
+                                                <i class="ti ti-dots-vertical"></i>
+                                            </button>
+                                            <ul class="dropdown-menu dropdown-menu-end shadow">
+                                                <li><a class="dropdown-item" asp-action="Edit" asp-route-id="@item.Id"><i class="ti ti-pencil me-2"></i>تعديل</a></li>
+                                                <li><a class="dropdown-item" asp-action="ProductHistory" asp-route-id="@item.Id"><i class="ti ti-list-details me-2"></i>سجل الحركة</a></li>
+                                            </ul>
+                                        </div>
+                                    }
+                                </div>
+                            </div>
+                            <div class="card-body product-body @(available ? "product-selectable" : "product-disabled")">
+                                <div class="product-meta">
+                                    <span>@(item.Unit == "Kilo" ? "بالكيلو" : "بالقطعة")</span>
+                                    @if (!string.IsNullOrWhiteSpace(item.Barcode))
+                                    {
+                                        <span class="product-barcode">@item.Barcode</span>
+                                    }
+                                </div>
+                                <div class="product-price">
+                                    @item.SalePrice.ToString("N2") <small>ج.م</small>
+                                </div>
+                                <div class="product-foot">
+                                    @if (!available)
+                                    {
+                                        <span class="stock-badge chip chip-danger">غير متاح</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="stock-badge chip @(low ? "chip-warn" : "chip-stock")">
+                                            <i class="ti ti-packages"></i>
+                                            <span class="stock-value">@item.StockQuantity.ToString(item.Unit == "Kilo" ? "N3" : "N0")</span>
+                                            @unitLabel
+                                        </span>
+                                    }
+                                    @if (effectiveTax > 0)
+                                    {
+                                        <span class="chip chip-tax">ضريبة @effectiveTax.ToString("N0")%</span>
+                                    }
+                                    @if (expired)
+                                    {
+                                        <span class="chip chip-danger">منتهي</span>
+                                    }
+                                    else if (expiring)
+                                    {
+                                        <span class="chip chip-warn">قرب انتهاء</span>
+                                    }
                                 </div>
                             </div>
                         </div>
                     </div>
                 }
             </div>
+            <p id="emptyCatalogMsg" class="text-secondary text-center py-5 @(Model.Any() ? "d-none" : "")">لا توجد منتجات.</p>
+            <p id="noSearchMsg" class="text-secondary text-center py-4 d-none">لا توجد نتائج مطابقة.</p>
         </div>
 
-        <div class="col-md-4 p-4 shadow-lg" style="min-height: 100vh; background-color: #1a1d21 !important; border-right: 1px solid #3d444d;">
-            <h4 class="text-white border-bottom border-secondary pb-3 mb-4 fw-bold">🧾 الفاتورة الحالية</h4>
-
-            <div id="cartContainer" class="pe-2 text-white" style="max-height: 60vh; overflow-y: auto;">
-                <p class="text-secondary text-center py-5" id="emptyCartMsg">السلة فارغة</p>
+        <div class="col-md-4">
+            <div class="p-3 p-md-4 pos-cart">
+            <h4 class="border-bottom pb-3 mb-3 fw-bold" id="cartTitle">الفاتورة الحالية <help-tip>سلة البيع الحالية. لم تُحفظ في النظام إلا بعد الضغط على دفع أو حفظ آجل.</help-tip></h4>
+            <div id="creditMeta" class="small text-warning mb-2 d-none"></div>
+            <div id="cartContainer">
+                <p class="text-secondary text-center py-4" id="emptyCartMsg">السلة فارغة</p>
                 <div id="cartItemsList"></div>
             </div>
+            <p id="cartMessage" class="small text-warning mt-2" style="min-height: 1.2em;"></p>
 
-            <div class="mt-4 pt-3 border-top border-secondary text-white">
+            <div class="mt-3 pt-3 border-top">
                 <div class="d-flex justify-content-between mb-2">
                     <span class="text-secondary">الإجمالي الفرعي:</span>
-                    <span id="subtotal" class="fw-bold">0.00</span>
+                    <span id="subtotal" class="fw-bold">0.00 ج.م</span>
                 </div>
-               
-                <div class="d-flex justify-content-between fs-3 fw-bold text-warning mt-3 pt-3 border-top border-secondary">
+                <div class="d-flex justify-content-between align-items-center mb-2 gap-2">
+                    <label class="text-secondary mb-0" for="discountInput">خصم: <help-tip>مبلغ يُخصم من إجمالي الفاتورة قبل الضريبة. لا يمكن أن يتجاوز الإجمالي الفرعي.</help-tip></label>
+                    <div class="input-group input-group-sm" style="max-width: 150px;">
+                        <input type="number" id="discountInput" class="form-control" min="0" step="0.01" value="0">
+                        <span class="input-group-text">ج.م</span>
+                    </div>
+                </div>
+                <div class="d-flex justify-content-between mb-2">
+                    <span class="text-secondary">الضريبة: <help-tip>تُحسب حسب نسبة كل صنف أو النسبة العامة من الإعدادات، بعد الخصم إن وُجد.</help-tip></span>
+                    <span id="tax" class="fw-bold">0.00 ج.م</span>
+                </div>
+                <div class="d-flex justify-content-between fs-3 fw-bold app-money mt-2 pt-2 border-top border-secondary">
                     <span>الإجمالي:</span>
-                    <span id="total">0.00</span>
+                    <span id="total">0.00 ج.م</span>
                 </div>
-                <button class="btn btn-success btn-lg w-100 mt-4 fw-bold rounded-pill py-3 shadow" onclick="checkout()">
-                    <i class="fas fa-check-double me-2"></i> دفع 
+                @{
+                    var payMethods = PaymentMethods.Enabled(settings);
+                    var defaultPay = payMethods[0];
+                }
+                @if (payMethods.Count > 0)
+                {
+                    <div class="d-flex flex-wrap gap-2 my-2">
+                        @if (payMethods.Contains(PaymentMethods.Cash))
+                        {
+                            <input type="radio" class="btn-check" name="payMethod" id="payCash" value="Cash" @(defaultPay == PaymentMethods.Cash ? "checked" : null)>
+                            <label class="btn btn-outline-primary btn-sm rounded-pill" for="payCash">نقدي</label>
+                        }
+                        @if (payMethods.Contains(PaymentMethods.Card))
+                        {
+                            <input type="radio" class="btn-check" name="payMethod" id="payCard" value="Card" @(defaultPay == PaymentMethods.Card ? "checked" : null)>
+                            <label class="btn btn-outline-primary btn-sm rounded-pill" for="payCard">بطاقة</label>
+                        }
+                        @if (payMethods.Contains(PaymentMethods.Transfer))
+                        {
+                            <input type="radio" class="btn-check" name="payMethod" id="payTransfer" value="Transfer" @(defaultPay == PaymentMethods.Transfer ? "checked" : null)>
+                            <label class="btn btn-outline-primary btn-sm rounded-pill" for="payTransfer">تحويل</label>
+                        }
+                    </div>
+                }
+                <div id="creditTotals" class="d-none mt-2">
+                    <div class="d-flex justify-content-between mb-1">
+                        <span class="text-secondary">المدفوع:</span>
+                        <span id="creditPaid" class="fw-bold">0.00 ج.م</span>
+                    </div>
+                    <div class="d-flex justify-content-between mb-2">
+                        <span class="text-secondary">المتبقي:</span>
+                        <span id="creditRemaining" class="fw-bold text-warning">0.00 ج.م</span>
+                    </div>
+                    <div class="input-group mb-2">
+                        <span class="input-group-text">ج.م</span>
+                        <input type="number" id="creditPayAmount" class="form-control" step="0.01" min="0.01" placeholder="مبلغ الدفعة">
+                    </div>
+                    <button type="button" id="creditPayBtn" class="btn btn-warning btn-lg w-100 fw-bold rounded-pill" @(openShiftId.HasValue ? null : "disabled")>
+                        تسجيل دفعة
+                    </button>
+                    <button type="button" id="creditNewBtn" class="btn btn-outline-secondary w-100 mt-2 rounded-pill">فاتورة جديدة</button>
+                </div>
+                <button type="button" id="payBtn" class="btn btn-primary btn-lg w-100 mt-3 fw-bold rounded-pill py-3" onclick="checkout()" @(openShiftId.HasValue ? null : "disabled")>
+                    <i class="ti ti-circle-check me-2"></i> دفع
                 </button>
+                <div class="d-flex gap-2 mt-2 align-items-center">
+                    <button type="button" id="holdSaleBtn" class="btn btn-outline-secondary flex-grow-1 rounded-pill" @(openShiftId.HasValue ? null : "disabled")>تعليق</button>
+                    <help-tip>التعليق يحفظ السلة مؤقتاً لاستكمالها لاحقاً من «المعلقة» دون تسجيل فاتورة.</help-tip>
+                    <button type="button" id="heldListBtn" class="btn btn-outline-secondary flex-grow-1 rounded-pill">المعلقة</button>
+                </div>
+                <div class="d-flex gap-2 mt-2 align-items-center">
+                    <button type="button" id="creditSaveBtn" class="btn btn-outline-warning btn-lg flex-grow-1 fw-bold rounded-pill" @(openShiftId.HasValue ? null : "disabled")>
+                        <i class="ti ti-notebook me-2"></i> حفظ آجل
+                    </button>
+                    <help-tip>بيع الآن والتحصيل لاحقاً. يُسجّل على حساب العميل ويظهر المتبقي حتى السداد.</help-tip>
+                </div>
+                @if (!openShiftId.HasValue)
+                {
+                    <div class="small text-warning mt-2">يجب فتح وردية أولاً قبل تسجيل فاتورة بيع.</div>
+                    <a asp-controller="Shifts" asp-action="Index" class="btn btn-sm btn-outline-warning rounded-pill w-100 mt-2">
+                        <i class="ti ti-clock-hour-4 me-1"></i>الورديات
+                    </a>
+                }
+                else
+                {
+                    <div class="small text-secondary mt-2">F2 أو Ctrl+Enter للدفع · Enter للباركود · Esc لإغلاق الوزن</div>
+                }
+            </div>
             </div>
         </div>
     </div>
 </div>
 
-<style>
-    .product-card {
-        transition: 0.3s ease;
-        border-style: solid !important;
-    }
-
-        .product-card:hover {
-            transform: translateY(-5px);
-            border-color: #0dcaf0 !important;
-        }
-
-    #cartContainer::-webkit-scrollbar {
-        width: 5px;
-    }
-
-    #cartContainer::-webkit-scrollbar-thumb {
-        background: #3d444d;
-        border-radius: 10px;
-    }
-</style>
-
-
-<div id="weightModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.85); z-index:9999; justify-content:center; align-items:center;">
-    <div class="bg-dark text-white p-4 rounded-4 border border-info shadow-lg" style="width:450px;">
-        <div class="d-flex justify-content-between align-items-center mb-3">
-            <h4 id="mProductName" class="text-info fw-bold mb-0">اسم المنتج</h4>
-            <button type="button" class="btn-close btn-close-white" onclick="closeWeightModal()"></button>
-        </div>
-
-        <p class="text-white small">سعر الكيلو الحالي: <span id="mProductPrice" class="text-warning fw-bold">0.00</span> ج.م</p>
-
-        <div class="row g-3">
-            <div class="col-12">
-                <label class="form-label text-white">الوزن المطلوب (بالكيلو)</label>
-                <div class="input-group">
-                    <input type="number" id="mInputWeight" class="form-control bg-black text-info border-secondary fs-3 text-center" step="0.001" placeholder="0.000">
-                    <span class="input-group-text bg-secondary text-white">كجم</span>
+<div class="modal fade" id="weightModal" tabindex="-1" aria-labelledby="mProductName" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h4 id="mProductName" class="text-primary fw-bold mb-0">اسم المنتج</h4>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="إغلاق"></button>
+            </div>
+            <div class="modal-body">
+                <p class="small text-secondary">سعر الكيلو الحالي: <span id="mProductPrice" class="app-money fw-bold">0.00</span> ج.م</p>
+                <div class="mb-3">
+                    <label class="form-label" for="mInputWeight">الوزن المطلوب (بالكيلو)</label>
+                    <div class="input-group">
+                        <input type="number" id="mInputWeight" class="form-control fs-3 text-center" step="0.001" min="0.001" placeholder="0.000">
+                        <span class="input-group-text">كجم</span>
+                    </div>
                 </div>
-            </div>
-
-            <div class="col-12 text-center my-1">
-                <span class="badge bg-secondary opacity-50">أو</span>
-            </div>
-
-            <div class="col-12">
-                <label class="form-label text-light">القيمة المطلوبة (بالجنيه)</label>
-                <div class="input-group">
-                    <input type="number" id="mInputMoney" class="form-control bg-black text-warning border-secondary fs-3 text-center" step="0.1" placeholder="0.00">
-                    <span class="input-group-text bg-secondary text-white">ج.م</span>
+                <div class="text-center mb-2"><span class="badge bg-secondary">أو</span></div>
+                <div class="mb-2">
+                    <label class="form-label" for="mInputMoney">القيمة المطلوبة (بالجنيه)</label>
+                    <div class="input-group">
+                        <input type="number" id="mInputMoney" class="form-control fs-3 text-center" step="0.01" min="0.01" placeholder="0.00">
+                        <span class="input-group-text">ج.م</span>
+                    </div>
                 </div>
+                <p id="weightError" class="text-warning small mb-0"></p>
             </div>
-        </div>
-
-        <div class="mt-4 d-flex gap-2">
-            <button class="btn btn-info btn-lg flex-grow-1 fw-bold rounded-pill" onclick="confirmWeightAddition()">إضافة للفاتورة</button>
-            <button class="btn btn-outline-light btn-lg rounded-pill" onclick="closeWeightModal()">إلغاء</button>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-primary btn-lg flex-grow-1 fw-bold rounded-pill" onclick="confirmWeightAddition()">إضافة للفاتورة</button>
+                <button type="button" class="btn btn-outline-secondary btn-lg rounded-pill" data-bs-dismiss="modal">إلغاء</button>
+            </div>
         </div>
     </div>
 </div>
+
+<div class="modal fade" id="creditCustomerModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title fw-bold">حفظ فاتورة آجل</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="إغلاق"></button>
+            </div>
+            <div class="modal-body">
+                <label class="form-label" for="creditCustomerSearch">بحث في دفتر العملاء</label>
+                <input type="text" id="creditCustomerSearch" class="form-control mb-2" placeholder="اسم أو هاتف..." autocomplete="off">
+                <div id="creditCustomerResults" class="list-group mb-3"></div>
+                <label class="form-label" for="creditCustomerName">اسم العميل</label>
+                <input type="text" id="creditCustomerName" class="form-control mb-2" required>
+                <label class="form-label" for="creditCustomerPhone">الهاتف (اختياري)</label>
+                <input type="text" id="creditCustomerPhone" class="form-control">
+                <p id="creditCustomerError" class="small text-warning mt-2 mb-0"></p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-warning flex-grow-1 rounded-pill fw-bold" id="confirmCreditSaveBtn">حفظ آجل</button>
+                <button type="button" class="btn btn-outline-secondary rounded-pill" data-bs-dismiss="modal">إلغاء</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="creditOpenModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title fw-bold">فواتير الآجل المفتوحة</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="إغلاق"></button>
+            </div>
+            <div class="modal-body">
+                <p id="creditOpenEmpty" class="text-secondary text-center py-4 mb-0 d-none">لا توجد فواتير آجل مفتوحة.</p>
+                <div class="table-responsive">
+                    <table class="table align-middle" id="creditOpenTable">
+                        <thead>
+                            <tr>
+                                <th>#</th>
+                                <th>العميل</th>
+                                <th>الإجمالي</th>
+                                <th>المتبقي</th>
+                                <th></th>
+                            </tr>
+                        </thead>
+                        <tbody id="creditOpenBody"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="heldSalesModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title fw-bold">الفواتير المعلقة</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="إغلاق"></button>
+            </div>
+            <div class="modal-body">
+                <p id="heldEmpty" class="text-secondary text-center py-3 mb-0 d-none">لا توجد فواتير معلقة.</p>
+                <div id="heldList"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
 @section Scripts {
     <script>
         let currentProduct = null;
         let cart = [];
+        let weightModal;
+        let creditCustomerModal;
+        let creditOpenModal;
+        let heldSalesModal;
+        let selectedCategory = '';
+        let creditInvoiceId = null;
+        let creditSearchTimer;
+        const hasOpenShift = @(openShiftId.HasValue ? "true" : "false");
 
-        // 1. دالة الفحص الرئيسية
-        function validateProductSelection(id, name, price, unit) {
-            if (unit === "Kilo") {
-                openWeightModal(id, name, price);
-            } else {
-                addToCart(id, name, price, 1, "Piece");
-            }
-        }
+        document.addEventListener('DOMContentLoaded', function () {
+            weightModal = new bootstrap.Modal(document.getElementById('weightModal'));
+            creditCustomerModal = new bootstrap.Modal(document.getElementById('creditCustomerModal'));
+            creditOpenModal = new bootstrap.Modal(document.getElementById('creditOpenModal'));
+            heldSalesModal = new bootstrap.Modal(document.getElementById('heldSalesModal'));
+            document.getElementById('weightModal').addEventListener('hidden.bs.modal', function () {
+                currentProduct = null;
+                document.getElementById('searchInput').focus();
+            });
 
-        // 2. دوال النافذة المنبثقة (Modal)
-        function openWeightModal(id, name, price) {
-            currentProduct = { id, name, price: parseFloat(price), unit: "Kilo" };
-            document.getElementById('mProductName').innerText = name;
-            document.getElementById('mProductPrice').innerText = price;
+            document.getElementById('productGrid')?.addEventListener('click', function (e) {
+                if (e.target.closest('.product-card-actions')) return;
+                const card = e.target.closest('.product-card:not(.is-out)');
+                if (!card || !card.querySelector('.product-selectable')) return;
+                addFromCol(card.closest('.product-col'), 1);
+            });
 
-            document.getElementById('mInputWeight').value = '';
-            document.getElementById('mInputMoney').value = '';
-            document.getElementById('weightModal').style.display = 'flex';
+            document.querySelectorAll('.js-pin-product').forEach(function (btn) {
+                btn.addEventListener('click', function (e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    toggleProductPin(btn);
+                });
+            });
 
-            setTimeout(() => document.getElementById('mInputWeight').focus(), 100);
-        }
+            const search = document.getElementById('searchInput');
+            search.addEventListener('input', function () {
+                filterCatalog(this.value);
+            });
+            search.addEventListener('keydown', function (e) {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    tryBarcode(this.value.trim());
+                }
+            });
 
-        function closeWeightModal() {
-            document.getElementById('weightModal').style.display = 'none';
-            currentProduct = null;
-        }
+            document.addEventListener('keydown', function (e) {
+                if (e.key === 'F2' || (e.ctrlKey && e.key === 'Enter')) {
+                    e.preventDefault();
+                    if (creditInvoiceId) recordCreditPayment();
+                    else checkout();
+                }
+            });
 
-        // 3. الحساب التلقائي داخل النافذة
-        document.getElementById('mInputWeight').addEventListener('input', function() {
-            if (currentProduct) {
-                let weight = parseFloat(this.value) || 0;
-                document.getElementById('mInputMoney').value = (weight * currentProduct.price).toFixed(2);
-            }
+            document.getElementById('openCreditBtn').addEventListener('click', openCreditList);
+            document.getElementById('creditSaveBtn').addEventListener('click', openCreditCustomerModal);
+            document.getElementById('confirmCreditSaveBtn').addEventListener('click', saveCreditInvoice);
+            document.getElementById('creditPayBtn').addEventListener('click', recordCreditPayment);
+            document.getElementById('creditNewBtn').addEventListener('click', clearCreditMode);
+            document.getElementById('discountInput')?.addEventListener('input', renderCart);
+            document.getElementById('holdSaleBtn')?.addEventListener('click', holdCurrentSale);
+            document.getElementById('heldListBtn')?.addEventListener('click', loadHeldSales);
+            document.querySelectorAll('.js-cat-filter').forEach(function (btn) {
+                btn.addEventListener('click', function () {
+                    selectedCategory = btn.dataset.category || '';
+                    document.querySelectorAll('.js-cat-filter').forEach(function (x) {
+                        x.classList.toggle('btn-primary', x === btn);
+                        x.classList.toggle('btn-outline-primary', x !== btn);
+                    });
+                    filterCatalog(document.getElementById('searchInput').value);
+                });
+            });
+            document.getElementById('creditCustomerSearch').addEventListener('input', function () {
+                clearTimeout(creditSearchTimer);
+                creditSearchTimer = setTimeout(function () { searchCreditCustomers(document.getElementById('creditCustomerSearch').value); }, 250);
+            });
         });
 
-        document.getElementById('mInputMoney').addEventListener('input', function() {
-            if (currentProduct) {
-                let money = parseFloat(this.value) || 0;
-                document.getElementById('mInputWeight').value = (money / currentProduct.price).toFixed(3);
+        function catalogCols() {
+            return Array.from(document.querySelectorAll('#productGrid .product-col'));
+        }
+
+        function readCol(col) {
+            return {
+                id: col.dataset.id,
+                name: col.dataset.name,
+                barcode: (col.dataset.barcode || '').toLowerCase(),
+                price: parseFloat(col.dataset.price),
+                tax: parseFloat(col.dataset.tax) || 0,
+                unit: col.dataset.unit,
+                stock: parseFloat(col.dataset.stock),
+                track: col.dataset.track === 'true',
+                reorder: parseInt(col.dataset.reorder || '0', 10)
+            };
+        }
+
+        function remainingStock(product) {
+            if (!product.track) return Number.POSITIVE_INFINITY;
+            const inCart = cart.filter(i => i.id === product.id).reduce((s, i) => s + i.qty, 0);
+            return product.stock - inCart;
+        }
+
+        function setPosMessage(text) {
+            document.getElementById('posMessage').textContent = text || '';
+        }
+        function setCartMessage(text) {
+            document.getElementById('cartMessage').textContent = text || '';
+        }
+
+        function addFromCol(col, qty) {
+            const product = readCol(col);
+            if (product.track && product.stock <= 0) {
+                setPosMessage('الصنف غير متاح في المخزون.');
+                return;
             }
+            if (product.unit === 'Kilo' && qty === 1 && !currentProduct) {
+                openWeightModal(product);
+                return;
+            }
+            addToCart(product, qty);
+        }
+
+        function openWeightModal(product) {
+            currentProduct = product;
+            document.getElementById('mProductName').innerText = product.name;
+            document.getElementById('mProductPrice').innerText = product.price.toFixed(2);
+            document.getElementById('mInputWeight').value = '';
+            document.getElementById('mInputMoney').value = '';
+            document.getElementById('weightError').textContent = '';
+            weightModal.show();
+            setTimeout(() => document.getElementById('mInputWeight').focus(), 200);
+        }
+
+        document.getElementById('mInputWeight').addEventListener('input', function () {
+            if (!currentProduct) return;
+            const weight = parseFloat(this.value) || 0;
+            document.getElementById('mInputMoney').value = (weight * currentProduct.price).toFixed(2);
+        });
+        document.getElementById('mInputMoney').addEventListener('input', function () {
+            if (!currentProduct) return;
+            const money = parseFloat(this.value) || 0;
+            document.getElementById('mInputWeight').value = currentProduct.price ? (money / currentProduct.price).toFixed(3) : '';
         });
 
         function confirmWeightAddition() {
-            let qtyInput = document.getElementById('mInputWeight');
-            let qty = parseFloat(qtyInput.value);
-
-            if (qty > 0 && currentProduct) {
-                addToCart(currentProduct.id, currentProduct.name, currentProduct.price, qty, "Kilo");
-                closeWeightModal();
-                qtyInput.value = '';
-            } else {
-                alert("يرجى إدخال وزن صحيح أولاً");
+            const qty = parseFloat(document.getElementById('mInputWeight').value);
+            if (!(qty > 0) || !currentProduct) {
+                document.getElementById('weightError').textContent = 'يرجى إدخال وزن صحيح أولاً.';
+                return;
             }
+            const product = currentProduct;
+            addToCart(product, qty);
+            weightModal.hide();
         }
 
-        // 4. دالة الإضافة الفعلية للسلة
-        function addToCart(id, name, price, qty, unit) {
-            let productId = id.toString();
-            let existing = cart.find(i => i.id === productId);
-
-            if (existing && unit === "Piece") {
-                existing.qty += 1;
+        function addToCart(product, qty) {
+            if (!(qty > 0)) {
+                setCartMessage('الكمية يجب أن تكون أكبر من صفر.');
+                return false;
+            }
+            if (!(product.price > 0)) {
+                setCartMessage('سعر بيع الصنف يجب أن يكون أكبر من صفر.');
+                return false;
+            }
+            if (creditInvoiceId) {
+                creditPost('/CreditInvoices/AddLine/' + creditInvoiceId, { productId: product.id, quantity: qty });
+                return true;
+            }
+            const remaining = remainingStock(product);
+            if (qty > remaining) {
+                setCartMessage('الكمية أكبر من المتاح (' + remaining + ').');
+                return false;
+            }
+            const existing = cart.find(i => i.id === product.id);
+            if (existing) {
+                if (existing.qty + qty > remaining + existing.qty) {
+                    setCartMessage('الكمية أكبر من المتاح.');
+                    return false;
+                }
+                existing.qty += qty;
             } else {
                 cart.push({
-                    id: productId,
-                    name: name,
-                    price: parseFloat(price),
-                    qty: parseFloat(qty),
-                    unit: unit
+                    id: product.id,
+                    name: product.name,
+                    price: product.price,
+                    tax: product.tax,
+                    qty: qty,
+                    unit: product.unit,
+                    track: product.track
                 });
             }
+            setCartMessage('');
+            setPosMessage('');
             renderCart();
+            return true;
         }
 
-        // 5. دالة عرض السلة وتحديث الحسابات (بدون ضرائب)
-        function renderCart() {
-            const listContainer = document.getElementById('cartItemsList');
-            const emptyMsg = document.getElementById('emptyCartMsg');
-            if (!listContainer) return;
-
-            listContainer.innerHTML = '';
-            let subtotal = 0;
-
-            if (cart.length === 0) {
-                if (emptyMsg) emptyMsg.style.display = 'block';
-            } else {
-                if (emptyMsg) emptyMsg.style.display = 'none';
-                cart.forEach((item, index) => {
-                    let itemTotal = item.price * item.qty;
-                    subtotal += itemTotal;
-
-                    let unitLabel = (item.unit === "Kilo") ? "كجم" : "قطعة";
-                    let qtyDisplay = (item.unit === "Kilo") ? item.qty.toFixed(3) : item.qty;
-
-                    const itemRow = document.createElement('div');
-                    itemRow.className = "d-flex justify-content-between align-items-center mb-2 bg-dark p-2 rounded border border-secondary text-white";
-                    itemRow.innerHTML = `
-                        <div style="flex-grow: 1;">
-                            <div class="fw-bold">${item.name}</div>
-                            <small class="text-info">${qtyDisplay} ${unitLabel} × ${item.price.toFixed(2)}</small>
-                        </div>
-                        <div class="text-warning mx-2 fw-bold">${itemTotal.toFixed(2)}</div>
-                        <button class="btn btn-sm btn-outline-danger border-0" onclick="removeFromCart(${index})">
-                            <i class="fas fa-trash"></i>
-                        </button>
-                    `;
-                    listContainer.appendChild(itemRow);
-                });
+        function changeQty(index, delta) {
+            const item = cart[index];
+            if (!item) return;
+            if (creditInvoiceId) {
+                const step = item.unit === 'Kilo' ? 0.001 : 1;
+                if (delta < 0) creditPost('/CreditInvoices/ReturnLine/' + creditInvoiceId, { productId: item.id, quantity: step });
+                else creditPost('/CreditInvoices/AddLine/' + creditInvoiceId, { productId: item.id, quantity: step });
+                return;
             }
-
-            // تعديل: إلغاء الضريبة تماماً وجعل الإجمالي يساوي المجموع الفرعي
-            let tax = 0;
-            let total = subtotal;
-
-            document.getElementById('subtotal').innerText = subtotal.toFixed(2);
-
-            // تحديث حقل الضريبة ليكون 0 دائماً أو يمكنك إخفاء العنصر من الـ HTML
-            const taxElement = document.getElementById('tax');
-            if(taxElement) taxElement.innerText = "0.00";
-
-            document.getElementById('total').innerText = total.toFixed(2);
+            const col = document.querySelector('.product-col[data-id="' + item.id + '"]');
+            const product = col ? readCol(col) : item;
+            const step = item.unit === 'Kilo' ? 0.001 : 1;
+            const next = Math.round((item.qty + delta * step) * 1000) / 1000;
+            if (next <= 0) {
+                cart.splice(index, 1);
+            } else {
+                const others = cart.filter((c, i) => i !== index && c.id === item.id).reduce((s, c) => s + c.qty, 0);
+                const cap = product.track === false ? Number.POSITIVE_INFINITY : ((product.stock || 0) - others);
+                if (next > cap) {
+                    setCartMessage('لا يمكن تجاوز المخزون المتاح.');
+                    return;
+                }
+                item.qty = next;
+            }
+            setCartMessage('');
+            renderCart();
         }
 
         function removeFromCart(index) {
+            const item = cart[index];
+            if (!item) return;
+            if (creditInvoiceId) {
+                creditPost('/CreditInvoices/ReturnLine/' + creditInvoiceId, { productId: item.id, quantity: item.qty });
+                return;
+            }
             cart.splice(index, 1);
+            setCartMessage('');
             renderCart();
         }
 
-        // 6. دالة إتمام البيع (إرسال ضريبة صفر للسيرفر)
-        function checkout() {
-            if (typeof cart === 'undefined' || cart.length === 0) {
-                alert("برجاء إضافة منتجات أولاً قبل إتمام البيع");
-                return;
+        function renderCart() {
+            const listContainer = document.getElementById('cartItemsList');
+            const emptyMsg = document.getElementById('emptyCartMsg');
+            listContainer.innerHTML = '';
+            let subtotal = 0;
+            let tax = 0;
+
+            if (cart.length === 0) {
+                emptyMsg.style.display = 'block';
+            } else {
+                emptyMsg.style.display = 'none';
+                cart.forEach((item, index) => {
+                    const line = item.price * item.qty;
+                    subtotal += line;
+                    tax += line * (item.tax / 100);
+                    const unitLabel = item.unit === 'Kilo' ? 'كجم' : 'قطعة';
+                    const qtyDisplay = item.unit === 'Kilo' ? item.qty.toFixed(3) : item.qty;
+                    const row = document.createElement('div');
+                    row.className = 'd-flex justify-content-between align-items-center mb-2 cart-line p-2 rounded';
+                    row.innerHTML =
+                        '<div class="flex-grow-1">' +
+                        '<div class="fw-bold">' + item.name + '</div>' +
+                        '<small class="text-info">' + qtyDisplay + ' ' + unitLabel + ' × ' + item.price.toFixed(2) + '</small>' +
+                        '<div class="btn-group btn-group-sm mt-1">' +
+                        '<button type="button" class="btn btn-outline-secondary" onclick="changeQty(' + index + ',-1)">−</button>' +
+                        '<button type="button" class="btn btn-outline-secondary" onclick="changeQty(' + index + ',1)">+</button>' +
+                        '</div></div>' +
+                        '<div class="app-money mx-2 fw-bold">' + line.toFixed(2) + '</div>' +
+                        '<button type="button" class="btn btn-sm btn-outline-danger border-0" onclick="removeFromCart(' + index + ')"><i class="ti ti-trash"></i></button>';
+                    listContainer.appendChild(row);
+                });
             }
 
-            const orderDetails = cart.map(item => ({
-                ProductId: parseInt(item.id),
-                Quantity: parseFloat(item.qty),
-                UnitPrice: parseFloat(item.price)
-            }));
+            tax = Math.round(tax * 100) / 100;
+            let discount = parseFloat(document.getElementById('discountInput')?.value || '0') || 0;
+            if (discount < 0) discount = 0;
+            if (discount > subtotal) discount = subtotal;
+            if (discount > 0 && subtotal > 0) {
+                tax = Math.round(tax * ((subtotal - discount) / subtotal) * 100) / 100;
+            }
+            const total = subtotal - discount + tax;
+            document.getElementById('subtotal').innerText = subtotal.toFixed(2) + ' ج.م';
+            document.getElementById('tax').innerText = tax.toFixed(2) + ' ج.م';
+            document.getElementById('total').innerText = total.toFixed(2) + ' ج.م';
+        }
 
-            const orderData = {
-                TotalAmount: parseFloat(document.getElementById('total').innerText) || 0,
-                TaxAmount: 0, // إرسال صفر دائماً
-                OrderDetails: orderDetails
-            };
+        function tryBarcode(val) {
+            if (!val) return;
+            const match = catalogCols().find(col => (col.dataset.barcode || '').toLowerCase() === val.toLowerCase());
+            if (match) {
+                addFromCol(match, 1);
+                document.getElementById('searchInput').value = '';
+                filterCatalog('');
+                return;
+            }
+            setPosMessage('لا يوجد صنف بهذا الباركود.');
+        }
 
-            fetch('/Products/SaveOrder', {
+        function filterCatalog(raw) {
+            const val = (raw || '').trim().toLowerCase();
+            let visible = 0;
+            catalogCols().forEach(col => {
+                const name = (col.dataset.name || '').toLowerCase();
+                const barcode = (col.dataset.barcode || '').toLowerCase();
+                const category = col.dataset.category || '';
+                const catOk = !selectedCategory || category === selectedCategory;
+                const show = catOk && (!val || name.includes(val) || barcode.includes(val));
+                col.classList.toggle('d-none', !show);
+                if (show) visible++;
+            });
+            document.getElementById('noSearchMsg').classList.toggle('d-none', visible !== 0 || catalogCols().length === 0);
+        }
+
+        function sortProductGrid() {
+            const grid = document.getElementById('productGrid');
+            catalogCols().sort((a, b) => {
+                const pin = Number(b.dataset.pinned === 'true') - Number(a.dataset.pinned === 'true');
+                if (pin !== 0) return pin;
+                return (a.dataset.name || '').localeCompare(b.dataset.name || '', 'ar');
+            }).forEach(col => grid.appendChild(col));
+        }
+
+        function toggleProductPin(btn) {
+            const col = btn.closest('.product-col');
+            if (!col) return;
+            btn.disabled = true;
+            fetch('/Products/TogglePin/' + btn.dataset.id, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(orderData)
+                headers: antiForgeryHeaders({ 'Content-Type': 'application/json' })
             })
             .then(async response => {
-                const contentType = response.headers.get("content-type");
-
-                if (response.ok) {
-                    alert("✅ تم حفظ الفاتورة بنجاح");
-                    window.location.reload();
-                }
-                else {
-                    if (contentType && contentType.includes("application/json")) {
-                        const errorData = await response.json();
-                        alert("⚠️ " + (errorData.message || "فشل الحفظ"));
-                    } else {
-                        const errorText = await response.text();
-                        alert("❌ خطأ من السيرفر: " + errorText);
-                    }
-                }
+                if (!response.ok) throw new Error();
+                const data = await response.json();
+                const pinned = !!(data.isPinned ?? data.IsPinned);
+                col.dataset.pinned = pinned ? 'true' : 'false';
+                btn.classList.toggle('is-on', pinned);
+                btn.setAttribute('aria-pressed', pinned ? 'true' : 'false');
+                btn.title = pinned ? 'إلغاء التثبيت' : 'تثبيت أعلى القائمة';
+                const icon = btn.querySelector('i');
+                if (icon) icon.className = pinned ? 'ti ti-pinned-filled' : 'ti ti-pin';
+                col.querySelector('.product-card')?.classList.toggle('is-pinned', pinned);
+                sortProductGrid();
             })
-            .catch(error => {
-                console.error('Network Error:', error);
-                alert("🌐 تعذر الاتصال بالسيرفر");
+            .catch(() => setPosMessage('تعذر تحديث التثبيت.'))
+            .finally(() => { btn.disabled = false; });
+        }
+
+        function deductLocalStock() {
+            cart.forEach(item => {
+                const col = document.querySelector('.product-col[data-id="' + item.id + '"]');
+                if (!col || col.dataset.track !== 'true') return;
+                const next = Math.round((parseFloat(col.dataset.stock) - item.qty) * 1000) / 1000;
+                col.dataset.stock = String(next);
+                const valueEl = col.querySelector('.stock-value');
+                const badge = col.querySelector('.stock-badge');
+                const body = col.querySelector('.product-body');
+                const card = col.querySelector('.product-card');
+                if (next <= 0) {
+                    if (badge) {
+                        badge.className = 'stock-badge chip chip-danger';
+                        badge.textContent = 'غير متاح';
+                    }
+                    body.classList.remove('product-selectable');
+                    body.classList.add('product-disabled');
+                    card.classList.add('is-out');
+                    card.classList.remove('is-low');
+                } else if (valueEl) {
+                    valueEl.textContent = col.dataset.unit === 'Kilo' ? next.toFixed(3) : String(Math.round(next));
+                    const low = next <= parseInt(col.dataset.reorder || '0', 10);
+                    badge.className = 'stock-badge chip ' + (low ? 'chip-warn' : 'chip-stock');
+                    card.classList.toggle('is-low', low);
+                    card.classList.remove('is-out');
+                }
             });
         }
 
-        // البحث بالباركود
-           document.getElementById('searchInput').addEventListener('input', function (e) {
-            let val = e.target.value.trim().toLowerCase();
-            const grid = document.getElementById('productGrid');
+        function setCreditUi(on) {
+            document.getElementById('payBtn').classList.toggle('d-none', on);
+            document.getElementById('creditSaveBtn').classList.toggle('d-none', on);
+            document.getElementById('creditTotals').classList.toggle('d-none', !on);
+            document.getElementById('creditMeta').classList.toggle('d-none', !on);
+            document.getElementById('cartTitle').textContent = on ? 'فاتورة آجل' : 'الفاتورة الحالية';
+        }
 
-            if (val === "") {
-                // إذا فرغ البحث، لا نفعل شيئاً (أو يمكنك إعادة الترتيب الأصلي إذا أردت)
+        function clearCreditMode() {
+            creditInvoiceId = null;
+            cart = [];
+            setCreditUi(false);
+            document.getElementById('creditMeta').textContent = '';
+            renderCart();
+        }
+
+        function applyCreditInvoice(invoice) {
+            if (!invoice || invoice.status && invoice.status !== 'Open') {
+                clearCreditMode();
                 return;
             }
-
-            // أولاً: فحص إذا كان المدخل باركود (للإبقاء على ميزة الباركود كما هي)
-            @foreach (var item in Model)
-            {
-                    <text>
-                    if (val === "@item.Barcode") {
-                        validateProductSelection('@item.Id', '@item.Name', '@item.SalePrice', '@item.Unit');
-                        e.target.value = ''; // مسح الخانة بعد نجاح الباركود
-                        return;
-                    }
-                    </text>
-            }
-
-            // ثانياً: ميزة البحث بالاسم (نقل المنتج للمقدمة)
-            let foundAny = false;
-            const cards = grid.querySelectorAll('.col-xl-3'); // جلب كل أعمدة المنتجات
-
-            cards.forEach(col => {
-                const card = col.querySelector('.product-card');
-                const productName = card.querySelector('.card-title').innerText.toLowerCase();
-
-                if (productName.includes(val)) {
-                    // إذا وجدنا تطابق، ننقل العمود بالكامل لأول الشبكة
-                    grid.prepend(col);
-                    card.classList.add('border-info'); // تمييز بسيط باللون الأزرق
-                    foundAny = true;
-                } else {
-                    card.classList.remove('border-info');
-                }
+            creditInvoiceId = invoice.id;
+            cart = (invoice.lines || []).map(function (line) {
+                return {
+                    id: String(line.id),
+                    name: line.name,
+                    price: line.price,
+                    tax: line.tax || 0,
+                    qty: line.qty,
+                    unit: line.unit || 'Piece',
+                    track: line.track !== false
+                };
             });
-        });
+            (invoice.lines || []).forEach(function (line) {
+                const col = document.querySelector('.product-col[data-id="' + line.id + '"]');
+                if (col && line.stock != null) col.dataset.stock = String(line.stock);
+            });
+            document.getElementById('creditMeta').textContent = '#' + invoice.id + ' — ' + invoice.customerName;
+            document.getElementById('creditPaid').textContent = Number(invoice.paid || 0).toFixed(2) + ' ج.م';
+            document.getElementById('creditRemaining').textContent = Number(invoice.remaining || 0).toFixed(2) + ' ج.م';
+            document.getElementById('creditPayAmount').value = '';
+            document.getElementById('creditPayAmount').placeholder = 'المتبقي ' + Number(invoice.remaining || 0).toFixed(2);
+            setCreditUi(true);
+            renderCart();
+        }
 
+        function creditForm(data) {
+            return Object.keys(data).map(function (key) {
+                return encodeURIComponent(key) + '=' + encodeURIComponent(data[key]);
+            }).join('&');
+        }
 
+        async function readJson(response) {
+            const contentType = response.headers.get('content-type') || '';
+            if (contentType.includes('application/json')) return response.json();
+            return {};
+        }
 
+        function creditPost(url, data) {
+            fetch(url, {
+                method: 'POST',
+                headers: antiForgeryHeaders({ 'Content-Type': 'application/x-www-form-urlencoded' }),
+                body: creditForm(data)
+            })
+            .then(async function (response) {
+                const payload = await readJson(response);
+                if (!response.ok) {
+                    setCartMessage(payload.message || 'تعذر تحديث فاتورة الآجل.');
+                    return;
+                }
+                if (payload.settled) {
+                    showToast(payload.message || 'تم تحصيل الفاتورة', 'success');
+                    refreshOpenCreditCount(-1);
+                    clearCreditMode();
+                    return;
+                }
+                if (payload.invoice) applyCreditInvoice(payload.invoice);
+                else if (!payload.invoice && creditInvoiceId) {
+                    showToast(payload.message || 'تم تحديث الفاتورة', 'success');
+                    clearCreditMode();
+                    refreshOpenCreditCount(-1);
+                }
+                setCartMessage('');
+            })
+            .catch(function () { setCartMessage('تعذر الاتصال بالسيرفر.'); });
+        }
 
+        function refreshOpenCreditCount(delta) {
+            const badge = document.getElementById('openCreditCount');
+            const next = Math.max(0, (parseInt(badge.textContent, 10) || 0) + delta);
+            badge.textContent = String(next);
+        }
+
+        function openCreditCustomerModal() {
+            if (!hasOpenShift) {
+                setCartMessage('يجب فتح وردية أولاً قبل تسجيل فاتورة آجل.');
+                return;
+            }
+            if (!cart.length) {
+                setCartMessage('أضف منتجات قبل حفظ فاتورة آجل.');
+                return;
+            }
+            document.getElementById('creditCustomerError').textContent = '';
+            document.getElementById('creditCustomerName').value = '';
+            document.getElementById('creditCustomerPhone').value = '';
+            document.getElementById('creditCustomerSearch').value = '';
+            document.getElementById('creditCustomerResults').innerHTML = '';
+            searchCreditCustomers('');
+            creditCustomerModal.show();
+        }
+
+        function searchCreditCustomers(query) {
+            fetch('/CreditInvoices/Customers?q=' + encodeURIComponent(query || ''))
+                .then(function (r) { return r.json(); })
+                .then(function (rows) {
+                    const box = document.getElementById('creditCustomerResults');
+                    box.innerHTML = '';
+                    (rows || []).forEach(function (row) {
+                        const btn = document.createElement('button');
+                        btn.type = 'button';
+                        btn.className = 'list-group-item list-group-item-action';
+                        btn.textContent = row.name + (row.phone ? ' — ' + row.phone : '');
+                        btn.addEventListener('click', function () {
+                            document.getElementById('creditCustomerName').value = row.name || '';
+                            document.getElementById('creditCustomerPhone').value = row.phone || '';
+                        });
+                        box.appendChild(btn);
+                    });
+                })
+                .catch(function () { });
+        }
+
+        function saveCreditInvoice() {
+            const name = document.getElementById('creditCustomerName').value.trim();
+            if (!name) {
+                document.getElementById('creditCustomerError').textContent = 'اسم العميل مطلوب.';
+                return;
+            }
+            const lines = cart.map(function (item) {
+                return { productId: parseInt(item.id, 10), quantity: item.qty };
+            });
+            fetch('/CreditInvoices/Create', {
+                method: 'POST',
+                headers: antiForgeryHeaders({ 'Content-Type': 'application/json' }),
+                body: JSON.stringify({
+                    customerName: name,
+                    phone: document.getElementById('creditCustomerPhone').value.trim(),
+                    lines: lines
+                })
+            })
+            .then(async function (response) {
+                const payload = await readJson(response);
+                if (!response.ok) {
+                    document.getElementById('creditCustomerError').textContent = payload.message || 'تعذر الحفظ.';
+                    return;
+                }
+                creditCustomerModal.hide();
+                cart.forEach(function (item) {
+                    const col = document.querySelector('.product-col[data-id="' + item.id + '"]');
+                    if (!col || col.dataset.track !== 'true') return;
+                    const next = Math.round((parseFloat(col.dataset.stock) - item.qty) * 1000) / 1000;
+                    col.dataset.stock = String(next);
+                });
+                showToast(payload.message || 'تم حفظ فاتورة الآجل', 'success');
+                refreshOpenCreditCount(1);
+                if (payload.invoice) applyCreditInvoice(payload.invoice);
+                else clearCreditMode();
+            })
+            .catch(function () {
+                document.getElementById('creditCustomerError').textContent = 'تعذر الاتصال بالسيرفر.';
+            });
+        }
+
+        function openCreditList() {
+            fetch('/CreditInvoices/Open')
+                .then(function (r) { return r.json(); })
+                .then(function (rows) {
+                    const body = document.getElementById('creditOpenBody');
+                    body.innerHTML = '';
+                    document.getElementById('creditOpenEmpty').classList.toggle('d-none', rows && rows.length);
+                    document.getElementById('openCreditCount').textContent = String((rows || []).length);
+                    (rows || []).forEach(function (row) {
+                        const tr = document.createElement('tr');
+                        tr.innerHTML = '<td>' + row.id + '</td><td>' + (row.customerName || '') + '</td><td>' +
+                            Number(row.totalAmount || 0).toFixed(2) + ' ج.م</td><td class="text-warning fw-bold">' +
+                            Number(row.remaining || 0).toFixed(2) + ' ج.م</td><td></td>';
+                        const btn = document.createElement('button');
+                        btn.type = 'button';
+                        btn.className = 'btn btn-sm btn-outline-warning rounded-pill';
+                        btn.textContent = 'فتح';
+                        btn.addEventListener('click', function () { loadCreditInvoice(row.id); });
+                        tr.lastChild.appendChild(btn);
+                        body.appendChild(tr);
+                    });
+                    creditOpenModal.show();
+                })
+                .catch(function () { setPosMessage('تعذر تحميل فواتير الآجل.'); });
+        }
+
+        function loadCreditInvoice(id) {
+            fetch('/CreditInvoices/Details/' + id)
+                .then(async function (response) {
+                    if (!response.ok) throw new Error();
+                    return response.json();
+                })
+                .then(function (invoice) {
+                    applyCreditInvoice(invoice);
+                    creditOpenModal.hide();
+                })
+                .catch(function () { setCartMessage('تعذر فتح فاتورة الآجل.'); });
+        }
+
+        function recordCreditPayment() {
+            if (!creditInvoiceId) return;
+            const amount = parseFloat(document.getElementById('creditPayAmount').value);
+            if (!(amount > 0)) {
+                setCartMessage('أدخل مبلغ الدفعة.');
+                return;
+            }
+            creditPost('/CreditInvoices/Pay/' + creditInvoiceId, { amount: amount });
+        }
+
+        function checkout() {
+            if (creditInvoiceId) {
+                recordCreditPayment();
+                return;
+            }
+            if (!hasOpenShift) {
+                setCartMessage('يجب فتح وردية أولاً قبل تسجيل فاتورة بيع.');
+                return;
+            }
+            if (!cart.length) {
+                setCartMessage('أضف منتجات قبل إتمام البيع.');
+                return;
+            }
+            const payBtn = document.getElementById('payBtn');
+            payBtn.disabled = true;
+            const orderDetails = cart.map(item => ({
+                ProductId: parseInt(item.id, 10),
+                Quantity: item.qty,
+                UnitPrice: item.price
+            }));
+            const discount = parseFloat(document.getElementById('discountInput')?.value || '0') || 0;
+            const paymentMethod = document.querySelector('input[name="payMethod"]:checked')?.value || 'Cash';
+            fetch('/Products/SaveOrder', {
+                method: 'POST',
+                headers: antiForgeryHeaders({ 'Content-Type': 'application/json' }),
+                body: JSON.stringify({
+                    TotalAmount: 0,
+                    TaxAmount: 0,
+                    DiscountAmount: discount,
+                    PaymentMethod: paymentMethod,
+                    OrderDetails: orderDetails
+                })
+            })
+            .then(async response => {
+                const contentType = response.headers.get('content-type') || '';
+                if (response.ok) {
+                    const data = contentType.includes('application/json') ? await response.json() : {};
+                    deductLocalStock();
+                    cart = [];
+                    document.getElementById('discountInput').value = '0';
+                    const firstPay = document.querySelector('input[name="payMethod"]');
+                    if (firstPay) firstPay.checked = true;
+                    renderCart();
+                    const id = data.orderId || data.OrderId;
+                    const receiptUrl = data.receiptUrl || data.ReceiptUrl;
+                    if (receiptUrl) {
+                        window.open(receiptUrl, 'receipt', 'width=420,height=640');
+                    }
+                    const extra = id
+                        ? ' <a class="text-white text-decoration-underline" href="/Order/OrderDetails/' + id + '">عرض الفاتورة</a>'
+                        : '';
+                    showToast((data.message || 'تم حفظ الفاتورة') + extra, 'success');
+                    document.getElementById('searchInput').focus();
+                    return;
+                }
+                if (contentType.includes('application/json')) {
+                    const errorData = await response.json();
+                    setCartMessage(errorData.message || 'فشل الحفظ');
+                } else {
+                    setCartMessage('حدث خطأ أثناء الحفظ.');
+                }
+            })
+            .catch(() => setCartMessage('تعذر الاتصال بالسيرفر.'))
+            .finally(() => { payBtn.disabled = false; });
+        }
+
+        function cartPayload() {
+            return {
+                cart: cart,
+                discountAmount: parseFloat(document.getElementById('discountInput')?.value || '0') || 0,
+                paymentMethod: document.querySelector('input[name="payMethod"]:checked')?.value || 'Cash'
+            };
+        }
+
+        function holdCurrentSale() {
+            if (!cart.length) {
+                setCartMessage('السلة فارغة.');
+                return;
+            }
+            const totalText = document.getElementById('total').innerText;
+            const total = parseFloat(totalText) || 0;
+            fetch('/Products/HoldSale', {
+                method: 'POST',
+                headers: antiForgeryHeaders({ 'Content-Type': 'application/json' }),
+                body: JSON.stringify({
+                    payloadJson: JSON.stringify(cartPayload()),
+                    lineCount: cart.length,
+                    totalAmount: total
+                })
+            })
+            .then(async function (response) {
+                if (!response.ok) throw new Error();
+                cart = [];
+                document.getElementById('discountInput').value = '0';
+                renderCart();
+                showToast('تم تعليق الفاتورة.', 'success');
+            })
+            .catch(function () { setCartMessage('تعذر تعليق الفاتورة.'); });
+        }
+
+        function loadHeldSales() {
+            fetch('/Products/HeldSales')
+                .then(function (response) { return response.json(); })
+                .then(function (rows) {
+                    const list = document.getElementById('heldList');
+                    list.innerHTML = '';
+                    document.getElementById('heldEmpty').classList.toggle('d-none', rows && rows.length);
+                    (rows || []).forEach(function (row) {
+                        const wrap = document.createElement('div');
+                        wrap.className = 'd-flex justify-content-between align-items-center border-bottom py-2';
+                        wrap.innerHTML = '<div><div class="fw-bold">#' + row.id + '</div><small class="text-secondary">' +
+                            (row.lineCount || 0) + ' أصناف · ' + Number(row.totalAmount || 0).toFixed(2) + ' ج.م</small></div>';
+                        const actions = document.createElement('div');
+                        const restore = document.createElement('button');
+                        restore.type = 'button';
+                        restore.className = 'btn btn-sm btn-primary rounded-pill me-1';
+                        restore.textContent = 'استعادة';
+                        restore.addEventListener('click', function () { restoreHeld(row.id); });
+                        const del = document.createElement('button');
+                        del.type = 'button';
+                        del.className = 'btn btn-sm btn-outline-danger rounded-pill';
+                        del.textContent = 'حذف';
+                        del.addEventListener('click', function () { deleteHeld(row.id); });
+                        actions.appendChild(restore);
+                        actions.appendChild(del);
+                        wrap.appendChild(actions);
+                        list.appendChild(wrap);
+                    });
+                    heldSalesModal.show();
+                })
+                .catch(function () { setPosMessage('تعذر تحميل الفواتير المعلقة.'); });
+        }
+
+        function restoreHeld(id) {
+            fetch('/Products/RestoreHeldSale/' + id, {
+                method: 'POST',
+                headers: antiForgeryHeaders({ 'Content-Type': 'application/json' })
+            })
+            .then(async function (response) {
+                if (!response.ok) throw new Error();
+                return response.json();
+            })
+            .then(function (data) {
+                const payload = JSON.parse(data.payloadJson || data.PayloadJson || '{}');
+                cart = payload.cart || [];
+                document.getElementById('discountInput').value = String(payload.discountAmount || 0);
+                const method = payload.paymentMethod || 'Cash';
+                const radio = document.querySelector('input[name="payMethod"][value="' + method + '"]');
+                if (radio) radio.checked = true;
+                renderCart();
+                heldSalesModal.hide();
+            })
+            .catch(function () { setCartMessage('تعذر استعادة الفاتورة.'); });
+        }
+
+        function deleteHeld(id) {
+            fetch('/Products/DeleteHeldSale/' + id, {
+                method: 'POST',
+                headers: antiForgeryHeaders({ 'Content-Type': 'application/json' })
+            })
+            .then(function (response) {
+                if (!response.ok) throw new Error();
+                loadHeldSales();
+            })
+            .catch(function () { setPosMessage('تعذر حذف الفاتورة المعلقة.'); });
+        }
     </script>
 }

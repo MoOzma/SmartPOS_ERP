@@ -1,118 +1,284 @@
-﻿@model SmartPOS_ERP.Models.Order
+@model SmartPOS_ERP.Models.Order
+@{
+    ViewData["Title"] = $"فاتورة بيع #{Model.Id}";
+    var store = ViewData["StoreSettings"] as StoreSettings;
+    var storeName = string.IsNullOrWhiteSpace(store?.StoreName) ? "Sama_POS" : store.StoreName;
+    var footer = string.IsNullOrWhiteSpace(store?.InvoiceFooter)
+        ? StoreSettingsService.DefaultInvoiceFooter
+        : store.InvoiceFooter;
+}
 
-<div class="container mt-5">
-    <div class="card bg-dark text-white border-secondary shadow-lg">
-        <div class="card-header border-secondary d-flex justify-content-between align-items-center p-4">
-            <div>
-                <h2 class="text-info fw-bold mb-0">فاتورة بيع #@Model.Id</h2>
-                <p class="text-muted mb-0">تاريخ العملية: @Model.OrderDate.ToString("yyyy/MM/dd HH:mm tt")</p>
+<div class="form-stack">
+    <div class="card border-0 shadow-sm invoice-print">
+        <div class="card-header bg-transparent border-secondary d-flex justify-content-between align-items-center p-4 flex-wrap gap-2">
+            <div class="d-flex align-items-center gap-3">
+                @if (!string.IsNullOrWhiteSpace(store?.LogoPath))
+                {
+                    <img src="@store.LogoPath" alt="" class="invoice-logo" />
+                }
+                <div>
+                    <div class="fw-bold text-primary">@storeName</div>
+                    <h2 class="h4 text-info fw-bold mb-0">فاتورة بيع #@Model.Id</h2>
+                    <p class="text-secondary mb-0">تاريخ العملية: @Model.OrderDate.ToString("yyyy/MM/dd HH:mm tt")</p>
+                    @if (!string.IsNullOrWhiteSpace(store?.Phone))
+                    {
+                        <p class="text-secondary small mb-0">@store.Phone</p>
+                    }
+                    @if (!string.IsNullOrWhiteSpace(store?.Address))
+                    {
+                        <p class="text-secondary small mb-0">@store.Address</p>
+                    }
+                </div>
             </div>
-            <div class="text-end">
-                <button onclick="window.print()" class="btn btn-outline-light rounded-pill">
-                    <i class="fas fa-print me-2"></i> طباعة الفاتورة
-                </button>
+            <div class="no-print">
+                @if (store?.PrintReceiptAfterSale == true)
+                {
+                    <a asp-action="Receipt" asp-route-id="@Model.Id" target="_blank" class="btn btn-outline-primary rounded-pill">
+                        <i class="ti ti-printer me-1"></i>إيصال حراري
+                    </a>
+                    <button type="button" onclick="window.print()" class="btn btn-outline-secondary rounded-pill">
+                        <i class="ti ti-printer me-1"></i>طباعة
+                    </button>
+                }
             </div>
         </div>
 
         <div class="card-body p-4">
-            <table class="table table-dark table-striped border-secondary mt-3">
-                <thead class="text-info">
-                    <tr>
-                        <th>المنتج</th>
-                        <th class="text-center">الكمية / الوزن</th>
-                        <th class="text-center">سعر الوحدة</th>
-                        <th class="text-end">الإجمالي</th>
-                        <th class="text-end">الوقت </th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @foreach (var detail in Model.OrderDetails)
-                    {
+            <div class="table-responsive">
+                <table class="table table-hover mb-0">
+                    <thead>
                         <tr>
-                            <td>@detail.Product?.Name</td>
-                            <td class="text-center">
-                                @detail.Quantity.ToString(detail.Product?.Unit == "Kilo" ? "N3" : "N0")
-                                @(detail.Product?.Unit == "Kilo" ? " كجم" : " قطعة")
-                            </td>
-                            <td class="text-center">@detail.UnitPrice.ToString("N2")</td>
-                            <td class="text-end fw-bold text-warning">@((detail.Quantity * detail.UnitPrice).ToString("N2"))</td>
-                            <td class="text-end fw-bold text-warning">
-                                <div class="small">@detail.Order.OrderDate.ToString("yyyy/MM/dd")</div>
-                                <div class="badge bg-dark text-white">@detail.Order.OrderDate.ToString("hh:mm tt")</div>
-                            </td>
-                            <td class="text-end fw-bold text-warning">
-                                <button class="btn btn-sm btn-outline-danger"
-                                        onclick="returnProduct(@detail.Order.Id, @item.ProductId, @item.Quantity)">
-                                    <i class="fa fa-undo"></i> مرتجع
-                                </button>
-                            </td>
+                            <th>المنتج</th>
+                            <th class="text-center">الكمية / الوزن</th>
+                            <th class="text-center">سعر الوحدة</th>
+                            <th class="text-end">الإجمالي</th>
+                            <th class="text-end no-print">إجراء</th>
                         </tr>
-                    }
-                </tbody>
-            </table>
+                    </thead>
+                    <tbody>
+                        @foreach (var detail in Model.OrderDetails)
+                        {
+                            <tr>
+                                <td>@detail.Product?.Name</td>
+                                <td class="text-center">
+                                    @detail.Quantity.ToString(detail.Product?.Unit == "Kilo" ? "N3" : "N0")
+                                    @(detail.Product?.Unit == "Kilo" ? " كجم" : " قطعة")
+                                </td>
+                                <td class="text-center">@detail.UnitPrice.ToString("N2")</td>
+                                <td class="text-end fw-bold app-money">@((detail.Quantity * detail.UnitPrice).ToString("N2"))</td>
+                                <td class="text-end no-print">
+                                    @if (detail.Quantity > 0 && AppPermissions.Has(User, AppPermissions.Return))
+                                    {
+                                        var isWeight = ReturnQuantity.IsWeight(detail.Product?.Unit);
+                                        <button type="button" class="btn btn-sm btn-outline-danger js-open-return"
+                                                data-order-id="@detail.OrderId"
+                                                data-product-id="@detail.ProductId"
+                                                data-product-name="@detail.Product?.Name"
+                                                data-unit="@(isWeight ? "Kilo" : "Piece")"
+                                                data-max-qty="@detail.Quantity.ToString(System.Globalization.CultureInfo.InvariantCulture)"
+                                                data-unit-price="@detail.UnitPrice.ToString(System.Globalization.CultureInfo.InvariantCulture)"
+                                                data-tax-rate="@detail.TaxRate.ToString(System.Globalization.CultureInfo.InvariantCulture)">
+                                            <i class="ti ti-arrow-back-up"></i> مرتجع
+                                        </button>
+                                    }
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
 
-            <div class="row mt-5 justify-content-end">
-                <div class="col-md-4">
-                    <div class="d-flex justify-content-between mb-2">
-                        <span>الإجمالي الفرعي:</span>
-                        <span>@((Model.TotalAmount - Model.TaxAmount).ToString("N2")) ج.م</span>
-                    </div>
-                    
-                    <div class="d-flex justify-content-between fs-4 fw-bold text-warning border-top border-secondary pt-2">
-                        <span>الإجمالي النهائي:</span>
-                        <span>@Model.TotalAmount.ToString("N2") ج.م</span>
+            <div class="row mt-4 justify-content-end">
+                <div class="col-md-5">
+                    <div class="form-section mb-0">
+                        <div class="d-flex justify-content-between mb-2">
+                            <span>الإجمالي الفرعي</span>
+                            <span>@Model.OrderDetails.Sum(d => d.Quantity * d.UnitPrice).ToString("N2") ج.م</span>
+                        </div>
+                        @if (Model.DiscountAmount > 0)
+                        {
+                            <div class="d-flex justify-content-between mb-2">
+                                <span>الخصم</span>
+                                <span>@Model.DiscountAmount.ToString("N2") ج.م</span>
+                            </div>
+                        }
+                        <div class="d-flex justify-content-between mb-2">
+                            <span>الضريبة <help-tip>ضريبة هذه الفاتورة حسب نسب الأصناف وقت البيع.</help-tip></span>
+                            <span>@Model.TaxAmount.ToString("N2") ج.م</span>
+                        </div>
+                        <div class="d-flex justify-content-between mb-2">
+                            <span>طريقة الدفع</span>
+                            <span>@PaymentMethods.Label(Model.PaymentMethod)</span>
+                        </div>
+                        <div class="d-flex justify-content-between fs-4 fw-bold app-money border-top pt-2">
+                            <span>الإجمالي النهائي</span>
+                            <span>@Model.TotalAmount.ToString("N2") ج.م</span>
+                        </div>
                     </div>
                 </div>
             </div>
         </div>
 
-        <div class="card-footer border-secondary text-center p-3 text-muted">
-            <p class="mb-0 small">شكراً لتعاملكم معنا - Smart POS System</p>
+        <div class="card-footer border-0 text-center p-3 text-secondary">
+            <p class="mb-0 small">@footer</p>
         </div>
     </div>
 
-    <div class="mt-3">
-        <a asp-action="Index" class="btn btn-link text-info p-0 text-decoration-none">
-            <i class="fas fa-arrow-right me-2"></i> العودة لسجل الفواتير
-        </a>
+    <div class="mt-3 no-print">
+        <a asp-action="Index" class="btn btn-outline-secondary rounded-pill">العودة لسجل الفواتير</a>
     </div>
 </div>
 
-<style>
-    @@media print {
-        body * {
-            visibility: hidden;
-        }
+<div class="modal fade no-print" id="returnModal" tabindex="-1" aria-labelledby="returnProductName" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h4 id="returnProductName" class="text-primary fw-bold mb-0">مرتجع</h4>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="إغلاق"></button>
+            </div>
+            <div class="modal-body">
+                <p class="small text-secondary mb-3">المباع المتبقي: <span id="returnSoldQty" class="fw-bold"></span></p>
+                <div class="mb-3">
+                    <label class="form-label" for="returnQty" id="returnQtyLabel">الكمية المرتجعة</label>
+                    <div class="input-group">
+                        <input type="number" id="returnQty" class="form-control fs-4 text-center" required>
+                        <span class="input-group-text" id="returnQtyUnit">قطعة</span>
+                    </div>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label" for="returnReason">سبب الارتجاع (اختياري)</label>
+                    <select id="returnReason" class="form-select">
+                        <option value="">بدون سبب</option>
+                        @foreach (var reason in ReturnReasons.All)
+                        {
+                            <option value="@reason">@reason</option>
+                        }
+                    </select>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label" for="returnNotes">ملاحظات (اختياري)</label>
+                    <textarea id="returnNotes" class="form-control" rows="2" maxlength="@ReturnReasons.NotesMaxLength" placeholder="تفاصيل إضافية..."></textarea>
+                </div>
+                <div class="d-flex justify-content-between align-items-center border-top pt-3">
+                    <span class="text-secondary">الاسترداد المتوقع</span>
+                    <span class="fs-4 fw-bold app-money"><span id="returnRefund">0.00</span> ج.م</span>
+                </div>
+                <p id="returnError" class="text-danger small mb-0 mt-2"></p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-danger flex-grow-1 fw-bold rounded-pill" id="returnConfirm">تأكيد المرتجع</button>
+                <button type="button" class="btn btn-outline-secondary rounded-pill" data-bs-dismiss="modal">إلغاء</button>
+            </div>
+        </div>
+    </div>
+</div>
 
-        .card, .card * {
-            visibility: visible;
-        }
+@section Scripts {
+    <script>
+        (function () {
+            const modalEl = document.getElementById('returnModal');
+            if (!modalEl) return;
 
-        .card {
-            position: absolute;
-            left: 0;
-            top: 0;
-            width: 100%;
-            border: none !important;
-        }
+            const modal = new bootstrap.Modal(modalEl);
+            const qtyInput = document.getElementById('returnQty');
+            const reasonInput = document.getElementById('returnReason');
+            const notesInput = document.getElementById('returnNotes');
+            const errorEl = document.getElementById('returnError');
+            const refundEl = document.getElementById('returnRefund');
+            let state = null;
 
-        .btn, .btn-link {
-            display: none !important;
-        }
+            function formatQty(value, isWeight) {
+                const n = Number(value);
+                return isWeight ? n.toFixed(3) : String(Math.trunc(n));
+            }
 
-        .bg-dark {
-            background-color: white !important;
-            color: black !important;
-        }
+            function updateRefund() {
+                if (!state) return;
+                const qty = Number(qtyInput.value);
+                if (!qty || qty <= 0) {
+                    refundEl.textContent = '0.00';
+                    return;
+                }
+                const line = qty * Number(state.unitPrice);
+                const refund = line + (line * Number(state.taxRate) / 100);
+                refundEl.textContent = refund.toFixed(2);
+            }
 
-        .text-white, .text-info, .text-warning {
-            color: black !important;
-        }
+            function openReturn(btn) {
+                state = {
+                    orderId: btn.dataset.orderId,
+                    productId: btn.dataset.productId,
+                    unit: btn.dataset.unit,
+                    maxQty: Number(btn.dataset.maxQty),
+                    unitPrice: btn.dataset.unitPrice,
+                    taxRate: btn.dataset.taxRate
+                };
+                const isWeight = state.unit === 'Kilo';
+                document.getElementById('returnProductName').textContent = btn.dataset.productName || 'مرتجع';
+                document.getElementById('returnSoldQty').textContent =
+                    formatQty(state.maxQty, isWeight) + (isWeight ? ' كجم' : ' قطعة');
+                document.getElementById('returnQtyLabel').textContent = isWeight ? 'وزن المرتجع' : 'عدد المرتجع';
+                document.getElementById('returnQtyUnit').textContent = isWeight ? 'كجم' : 'قطعة';
+                qtyInput.step = isWeight ? '0.001' : '1';
+                qtyInput.min = isWeight ? '0.001' : '1';
+                qtyInput.max = String(state.maxQty);
+                qtyInput.value = formatQty(state.maxQty, isWeight);
+                reasonInput.value = '';
+                notesInput.value = '';
+                errorEl.textContent = '';
+                updateRefund();
+                modal.show();
+                qtyInput.focus();
+                qtyInput.select();
+            }
 
-        .table-dark {
-            --bs-table-bg: transparent;
-            color: black;
-            border-color: #dee2e6;
-        }
-    }
-</style>
+            document.querySelectorAll('.js-open-return').forEach(function (btn) {
+                btn.addEventListener('click', function () { openReturn(btn); });
+            });
+            qtyInput.addEventListener('input', updateRefund);
+
+            document.getElementById('returnConfirm').addEventListener('click', async function () {
+                if (!state) return;
+                const isWeight = state.unit === 'Kilo';
+                const qty = Number(qtyInput.value);
+                errorEl.textContent = '';
+                if (!qty || qty <= 0) {
+                    errorEl.textContent = 'كمية غير صحيحة';
+                    return;
+                }
+                if (!isWeight && !Number.isInteger(qty)) {
+                    errorEl.textContent = 'كمية العدد يجب أن تكون عددًا صحيحًا.';
+                    return;
+                }
+                if (qty > state.maxQty) {
+                    errorEl.textContent = 'الكمية المرتجعة أكبر من المباعة';
+                    return;
+                }
+
+                const body = new URLSearchParams();
+                body.append('orderId', state.orderId);
+                body.append('productId', state.productId);
+                body.append('returnQty', String(qty));
+                body.append('reason', reasonInput.value);
+                body.append('notes', notesInput.value);
+
+                try {
+                    const response = await fetch('/Order/ProcessReturn', {
+                        method: 'POST',
+                        headers: antiForgeryHeaders({ 'Content-Type': 'application/x-www-form-urlencoded' }),
+                        body: body
+                    });
+                    const data = await response.json();
+                    if (!data.success) {
+                        errorEl.textContent = data.message || 'تعذر تنفيذ المرتجع';
+                        return;
+                    }
+                    modal.hide();
+                    window.location.reload();
+                } catch (e) {
+                    errorEl.textContent = 'تعذر الاتصال بالسيرفر';
+                }
+            });
+        })();
+    </script>
+}

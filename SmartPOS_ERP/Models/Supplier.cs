@@ -24,15 +24,22 @@ namespace SmartPOS_ERP.Models
 
         public List<PurchaseInvoice> Invoices { get; set; }
         public List<SupplierPayment> Payments { get; set; }
+        public List<PurchaseReturn> Returns { get; set; } = [];
 
         // إجمالي قيمة المشتريات من هذا المورد
-        public decimal TotalPurchases => Invoices?.Sum(i => i.Details.Sum(d => d.PackageQuantity * d.PackageCost)) ?? 0;
+        public decimal TotalPurchases => Invoices?
+            .Where(i => !i.IsVoided)
+            .Sum(i => i.Details.Sum(d => d.PackageQuantity * d.PackageCost)) ?? 0;
 
         // إجمالي ما تم دفعه فعلياً
         public decimal TotalPaid => Payments?.Sum(p => p.AmountPaid) ?? 0;
 
+        public decimal TotalReturns => Returns?
+            .SelectMany(r => r.Details ?? [])
+            .Sum(d => d.LineTotal) ?? 0;
+
         // الرصيد المتبقي (الديون)
-        public decimal Balance => TotalPurchases - TotalPaid;
+        public decimal Balance => TotalPurchases - TotalPaid - TotalReturns;
 
 
     }

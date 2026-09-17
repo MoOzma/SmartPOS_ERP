@@ -1,0 +1,30 @@
+@{
+    ViewData["Title"] = "استيراد أصناف";
+}
+
+<div class="form-stack">
+    <div class="card border-0 shadow-sm">
+        <div class="card-header bg-transparent border-secondary py-3">
+            <h4 class="text-info mb-1"><i class="ti ti-file-spreadsheet me-2"></i>استيراد أصناف من CSV <help-tip>ارفع ملف جدول بالأعمدة المحددة لإضافة أصناف دفعة واحدة. الاسم أو الباركود المكرر يُتخطى.</help-tip></h4>
+            <p class="text-secondary small mb-0">الأعمدة: Name, Barcode, CostPrice, SalePrice, StockQuantity, Unit, Category, ExpiryDate</p>
+        </div>
+        <div class="card-body p-4">
+            @if (TempData["Error"] is string error)
+            {
+                <div class="alert alert-danger">@error</div>
+            }
+            <form asp-action="Import" method="post" enctype="multipart/form-data">
+                <div class="mb-3">
+                    <label class="form-label" for="file">ملف CSV</label>
+                    <input type="file" name="file" id="file" class="form-control" accept=".csv,text/csv" required />
+                </div>
+                <p class="form-hint">الوحدة: Piece أو Kilo. الاسم مطلوب وفريد. الباركود اختياري وفريد إن وُجد. المكرر يُتخطى. تاريخ الصلاحية بصيغة yyyy-MM-dd.</p>
+                <div class="d-flex gap-2">
+                    <button type="submit" class="btn btn-primary rounded-pill px-4">استيراد</button>
+                    <a asp-action="Index" class="btn btn-outline-secondary rounded-pill">إلغاء</a>
+                    <a href="/files/products-import-template.csv" class="btn btn-outline-info rounded-pill" download>قالب</a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>

@@ -1,0 +1,50 @@
+@model SmartPOS_ERP.Models.Supplier
+
+@{
+    ViewData["Title"] = "تعديل مورد";
+}
+
+<div class="form-stack">
+    <div class="card border-0 shadow-sm">
+        <div class="card-header bg-transparent border-secondary py-3 d-flex justify-content-between align-items-center flex-wrap gap-2">
+            <div>
+                <h4 class="text-info mb-1"><i class="ti ti-pencil me-2"></i>تعديل مورد</h4>
+                <p class="text-secondary small mb-0">تحديث بيانات المورد دون تغيير كشف الحساب.</p>
+            </div>
+            <a asp-action="Suppliers" class="btn btn-outline-secondary rounded-pill">رجوع</a>
+        </div>
+        <div class="card-body p-4">
+            <form asp-action="EditSupplier" method="post">
+                <input type="hidden" asp-for="Id" />
+                <section class="form-section">
+                    <h5 class="form-section-title"><i class="ti ti-id"></i> بيانات المورد</h5>
+                    <div class="mb-3">
+                        <label class="form-label" asp-for="Name"></label>
+                        <input asp-for="Name" class="form-control" required />
+                        <span asp-validation-for="Name" class="text-danger"></span>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label" asp-for="Phone"></label>
+                        <input asp-for="Phone" class="form-control" dir="ltr" />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label" asp-for="Address"></label>
+                        <input asp-for="Address" class="form-control" />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label" asp-for="Notes"></label>
+                        <textarea asp-for="Notes" class="form-control" rows="3"></textarea>
+                    </div>
+                </section>
+                <div class="d-flex gap-2">
+                    <button type="submit" class="btn btn-primary rounded-pill px-4 fw-bold">حفظ</button>
+                    <a asp-action="Suppliers" class="btn btn-outline-secondary rounded-pill px-4">إلغاء</a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    @{ await Html.RenderPartialAsync("_ValidationScriptsPartial"); }
+}

@@ -1,39 +1,97 @@
-﻿@model IEnumerable<SmartPOS_ERP.Models.User>
+@model IEnumerable<SmartPOS_ERP.Models.User>
 
-<div class="container mt-5 text-white">
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <h2>إدارة الموظفين</h2>
-        <a asp-action="Create" class="btn btn-info">+ إضافة موظف جديد</a>
+@{
+    ViewData["Title"] = "الموظفون";
+}
+
+<div class="page-head">
+    <div>
+        <h3 class="page-title"><i class="ti ti-users"></i> إدارة الموظفين <help-tip>حسابات الدخول. المدير يرى كل الشاشات. الكاشير: بيع ووردية، وتزيد الصلاحيات من الشيكات.</help-tip></h3>
+        <p class="page-sub">حسابات الدخول وصلاحيات الشاشات.</p>
     </div>
+    <div class="page-actions">
+        <a asp-action="Create" class="btn btn-primary rounded-pill">
+            <i class="ti ti-user-plus me-1"></i>إضافة موظف
+        </a>
+    </div>
+</div>
 
-    <table class="table table-dark table-hover">
-        <thead>
-            <tr>
-                <th>اسم المستخدم</th>
-                <th>الصلاحية</th>
-                <th>الإجراءات</th>
-            </tr>
-        </thead>
-        <tbody>
-            @foreach (var user in Model)
-            {
+@if (TempData["Message"] != null)
+{
+    <div class="alert alert-success">@TempData["Message"]</div>
+}
+@if (TempData["Error"] != null)
+{
+    <div class="alert alert-danger">@TempData["Error"]</div>
+}
+
+<div class="card table-card border-0 shadow-sm">
+    <div class="table-responsive">
+        <table class="table table-hover mb-0">
+            <thead>
                 <tr>
-                    <td>@user.Username</td>
-                    <td>
-                        <span class="badge @(user.Role == "Admin" ? "bg-danger" : "bg-success")">
-                            @user.Role
-                        </span>
-                    </td>
-                    <td>
-                        @if (user.Username != "admin")
-                        {
-                            <a asp-action="Delete" asp-route-id="@user.Id" class="btn btn-sm btn-outline-danger"
-                               onclick="return confirm('هل أنت متأكد من حذف هذا الموظف؟')">حذف</a>
-                        }
-                    </td>
+                    <th>الاسم</th>
+                    <th>اسم الدخول</th>
+                    <th>الهاتف</th>
+                    <th>الدور</th>
+                    <th>الحالة</th>
+                    <th>الصلاحيات</th>
+                    <th>الإجراءات</th>
                 </tr>
-            }
-        </tbody>
-    </table>
-    <a asp-controller="Products" asp-action="Index" class="btn btn-secondary">العودة للرئيسية</a>
+            </thead>
+            <tbody>
+                @if (!Model.Any())
+                {
+                    <tr>
+                        <td colspan="7" class="empty-cell">لا يوجد موظفون.</td>
+                    </tr>
+                }
+                @foreach (var user in Model)
+                {
+                    <tr class="@(!user.IsActive ? "text-secondary" : "")">
+                        <td class="fw-bold">@user.DisplayName</td>
+                        <td>@user.Username</td>
+                        <td>@(string.IsNullOrWhiteSpace(user.Phone) ? "—" : user.Phone)</td>
+                        <td>
+                            <span class="badge @(user.Role == "Admin" ? "bg-danger" : "bg-success")">
+                                @(user.Role == "Admin" ? "مدير" : "كاشير")
+                            </span>
+                        </td>
+                        <td>
+                            <span class="badge @(user.IsActive ? "bg-success" : "bg-secondary")">
+                                @(user.IsActive ? "مفعّل" : "موقوف")
+                            </span>
+                        </td>
+                        <td>
+                            @if (user.Role == "Admin")
+                            {
+                                <span class="chip">كل الصلاحيات</span>
+                            }
+                            else
+                            {
+                                @if (user.CanProcessReturn) { <span class="chip">مرتجع</span> }
+                                @if (user.CanManageProducts) { <span class="chip">أصناف</span> }
+                                @if (user.CanViewAllOrders) { <span class="chip">كل الفواتير</span> }
+                                @if (user.CanManageExpenses) { <span class="chip">مصروفات</span> }
+                                @if (user.CanManagePurchases) { <span class="chip">توريد</span> }
+                                @if (user.CanViewDashboard) { <span class="chip">لوحة</span> }
+                                @if (!user.CanProcessReturn && !user.CanManageProducts && !user.CanViewAllOrders && !user.CanManageExpenses && !user.CanManagePurchases && !user.CanViewDashboard)
+                                {
+                                    <span class="text-secondary small">بيع ووردية فقط</span>
+                                }
+                            }
+                        </td>
+                        <td class="text-nowrap">
+                            <a asp-action="Edit" asp-route-id="@user.Id" class="btn btn-sm btn-outline-primary">تعديل</a>
+                            <form asp-action="ToggleActive" asp-route-id="@user.Id" method="post" class="d-inline">
+                                <button type="submit" class="btn btn-sm @(user.IsActive ? "btn-outline-warning" : "btn-outline-success")">
+                                    @(user.IsActive ? "إيقاف" : "تفعيل")
+                                </button>
+                            </form>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
 </div>

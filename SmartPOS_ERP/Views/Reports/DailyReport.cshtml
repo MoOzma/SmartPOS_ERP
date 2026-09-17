@@ -1,42 +1,58 @@
-﻿<div class="container-fluid bg-dark text-white p-4">
-    <h3 class="text-info fw-bold mb-4"><i class="fas fa-file-invoice-dollar me-2"></i> تقرير المبيعات السنوي (آخر 12 شهر)</h3>
+@{
+    ViewData["Title"] = "مبيعات اليوم وآخر 12 شهر";
+    var monthly = ViewBag.MonthlySalesData as IEnumerable<dynamic>;
+}
 
-    <div class="row mb-4">
-        <div class="col-md-4">
-            <div class="card bg-info bg-opacity-10 border-info text-center p-3 shadow-sm">
-                <h6 class="text-white">مبيعات اليوم</h6>
-                <h2 class="fw-bold text-warning">@ViewBag.DailyTotal.ToString("N2") ج.م</h2>
-            </div>
+<div class="page-head">
+    <div>
+        <h3 class="page-title"><i class="ti ti-calendar-stats"></i> مبيعات اليوم وآخر 12 شهر <help-tip>مبيعات اليوم الحالي، ثم جدول لكل شهر في السنة الماضية: الإجمالي وعدد الفواتير ومتوسط الفاتورة.</help-tip></h3>
+        <p class="page-sub">مقارنة الشهر الحالي بالشهور السابقة.</p>
+    </div>
+</div>
+
+<div class="row g-3 mb-4">
+    <div class="col-md-4">
+        <div class="stat-card">
+            <div class="stat-label">مبيعات اليوم</div>
+            <p class="stat-value app-money">@ViewBag.DailyTotal.ToString("N2") ج.م</p>
         </div>
     </div>
+</div>
 
-    <div class="card bg-secondary bg-opacity-10 border-secondary shadow">
-        <div class="card-header border-secondary bg-transparent">
-            <h5 class="mb-0 text-white"><i class="fas fa-table me-2"></i> تفاصيل المبيعات الشهرية</h5>
-        </div>
-        <div class="card-body p-0">
-            <table class="table table-dark table-hover mb-0 text-center">
-                <thead>
-                    <tr class="text-secondary">
-                        <th>الشهر / السنة</th>
-                        <th>إجمالي المبيعات</th>
-                        <th>عدد الفواتير</th>
-                        <th>متوسط الفاتورة</th>
+<div class="card table-card border-0 shadow-sm">
+    <div class="card-header">تفاصيل المبيعات الشهرية</div>
+    <div class="table-responsive">
+        <table class="table table-hover mb-0 text-center">
+            <thead>
+                <tr>
+                    <th>الشهر / السنة</th>
+                    <th>إجمالي المبيعات</th>
+                    <th>عدد الفواتير</th>
+                    <th>متوسط الفاتورة <help-tip>إجمالي المبيعات ÷ عدد الفواتير في ذلك الشهر.</help-tip></th>
+                </tr>
+            </thead>
+            <tbody>
+                @if (monthly == null || !monthly.Any())
+                {
+                    <tr>
+                        <td colspan="4" class="empty-cell">لا توجد مبيعات في آخر 12 شهر.</td>
                     </tr>
-                </thead>
-                <tbody>
-                    @foreach (var item in ViewBag.MonthlySalesData)
+                }
+                else
+                {
+                    foreach (var item in monthly)
                     {
                         var monthName = new DateTime(item.Year, item.Month, 1).ToString("MMMM yyyy", new System.Globalization.CultureInfo("ar-EG"));
+                        var avg = item.Count == 0 ? 0 : item.Total / item.Count;
                         <tr>
                             <td class="text-info">@monthName</td>
-                            <td class="fw-bold">@item.Total.ToString("N2") ج.م</td>
+                            <td class="fw-bold app-money">@item.Total.ToString("N2") ج.م</td>
                             <td><span class="badge bg-secondary">@item.Count</span></td>
-                            <td class="text-white small">@((item.Total / item.Count).ToString("N2"))</td>
+                            <td>@avg.ToString("N2") ج.م</td>
                         </tr>
                     }
-                </tbody>
-            </table>
-        </div>
+                }
+            </tbody>
+        </table>
     </div>
 </div>

@@ -1,0 +1,181 @@
+@model SmartPOS_ERP.Models.ShiftDetailsViewModel
+
+@{
+    ViewData["Title"] = $"وردية #{Model.Shift.Id}";
+}
+
+<div class="page-head">
+    <div>
+        <h3 class="page-title"><i class="ti ti-clock"></i> وردية #@Model.Shift.Id — @Model.Shift.User.Username</h3>
+        <p class="page-sub">ملخص الصندوق والفواتير وحركة المخزون لهذه الوردية.</p>
+    </div>
+    <div class="page-actions">
+        @if (Model.Shift.IsOpen && Model.Shift.User.Username == User.Identity?.Name)
+        {
+            <a asp-action="Close" class="btn btn-warning rounded-pill fw-bold">إقفال الوردية</a>
+        }
+        <a asp-action="Index" class="btn btn-outline-secondary rounded-pill">رجوع</a>
+    </div>
+</div>
+
+@if (TempData["Message"] != null)
+{
+    <div class="alert alert-success">@TempData["Message"]</div>
+}
+
+<div class="row g-3 mb-4">
+    <div class="col-md-3">
+        <div class="stat-card">
+            <div class="stat-label">الحالة</div>
+            <p class="stat-value @(Model.Shift.IsOpen ? "text-success" : "")">@(Model.Shift.IsOpen ? "مفتوحة" : "مقفلة")</p>
+            <div class="small text-secondary mt-2">@Model.Shift.OpenedAt.ToString("yyyy-MM-dd HH:mm")</div>
+            @if (Model.Shift.ClosedAt != null)
+            {
+                <div class="small text-secondary">حتى @Model.Shift.ClosedAt.Value.ToString("yyyy-MM-dd HH:mm")</div>
+            }
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="stat-card">
+            <div class="stat-label">العهدة <help-tip>النقد الذي بدأ به الدرج عند فتح هذه الوردية.</help-tip></div>
+            <p class="stat-value">@Model.Shift.OpeningCash.ToString("N2") ج.م</p>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="stat-card">
+            <div class="stat-label">مبيعات / مرتجعات</div>
+            <div class="text-success">+ @Model.SalesTotal.ToString("N2")</div>
+            <div class="text-danger">- @Model.ReturnsTotal.ToString("N2")</div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="stat-card">
+            <div class="stat-label">المتوقع / الفعلي / الفرق <help-tip>المتوقع من النظام، الفعلي بعد العد، والفرق: سالب = عجز، موجب = زيادة.</help-tip></div>
+            <div>@(Model.Shift.ExpectedCash?.ToString("N2") ?? "—")</div>
+            <div>@(Model.Shift.ClosingCash?.ToString("N2") ?? "—")</div>
+            <div class="@(Model.Shift.Difference < 0 ? "text-danger" : "text-success")">
+                @(Model.Shift.Difference?.ToString("N2") ?? "—")
+            </div>
+        </div>
+    </div>
+</div>
+
+@if (!string.IsNullOrWhiteSpace(Model.Shift.Notes))
+{
+    <p class="text-secondary mb-4">ملاحظات: @Model.Shift.Notes</p>
+}
+
+<div class="card table-card border-0 shadow-sm mb-4">
+    <div class="card-header">فواتير الوردية</div>
+    <div class="table-responsive">
+        <table class="table table-hover mb-0 align-middle">
+            <thead>
+                <tr>
+                    <th>#</th>
+                    <th>التاريخ</th>
+                    <th>الإجمالي</th>
+                    <th>الضريبة</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                @if (!Model.Orders.Any())
+                {
+                    <tr><td colspan="5" class="empty-cell">لا توجد فواتير على هذه الوردية.</td></tr>
+                }
+                @foreach (var order in Model.Orders)
+                {
+                    <tr>
+                        <td>@order.Id</td>
+                        <td>@order.OrderDate.ToString("yyyy-MM-dd HH:mm")</td>
+                        <td class="app-money">@order.TotalAmount.ToString("N2")</td>
+                        <td>@order.TaxAmount.ToString("N2")</td>
+                        <td>
+                            <a asp-controller="Order" asp-action="OrderDetails" asp-route-id="@order.Id" class="btn btn-sm btn-outline-primary">عرض</a>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<div class="card table-card border-0 shadow-sm mb-4">
+    <div class="card-header">مرتجعات الوردية</div>
+    <div class="table-responsive">
+        <table class="table table-hover mb-0 align-middle">
+            <thead>
+                <tr>
+                    <th>#</th>
+                    <th>الفاتورة</th>
+                    <th>المنتج</th>
+                    <th>الكمية</th>
+                    <th>المبلغ</th>
+                    <th>السبب</th>
+                    <th>التاريخ</th>
+                </tr>
+            </thead>
+            <tbody>
+                @if (!Model.Returns.Any())
+                {
+                    <tr><td colspan="7" class="empty-cell">لا توجد مرتجعات على هذه الوردية.</td></tr>
+                }
+                @foreach (var ret in Model.Returns)
+                {
+                    <tr>
+                        <td>@ret.Id</td>
+                        <td>@ret.OrderId</td>
+                        <td>@ret.Product?.Name</td>
+                        <td>@ret.Quantity.ToString("N3")</td>
+                        <td class="text-danger">@ret.RefundAmount.ToString("N2")</td>
+                        <td>
+                            @(string.IsNullOrWhiteSpace(ret.Reason) ? "—" : ret.Reason)
+                            @if (!string.IsNullOrWhiteSpace(ret.Notes))
+                            {
+                                <div class="small text-secondary">@ret.Notes</div>
+                            }
+                        </td>
+                        <td>@ret.ReturnDate.ToString("yyyy-MM-dd HH:mm")</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<div class="card table-card border-0 shadow-sm">
+    <div class="card-header">دفتر حركة المخزون <help-tip>كل دخول وخروج للصنف في هذه الوردية: بيع، توريد، مرتجع، أو تسوية جرد.</help-tip></div>
+    <div class="table-responsive">
+        <table class="table table-hover mb-0 align-middle">
+            <thead>
+                <tr>
+                    <th>التاريخ</th>
+                    <th>المنتج</th>
+                    <th>النوع</th>
+                    <th>قبل</th>
+                    <th>الحركة</th>
+                    <th>بعد</th>
+                    <th>المرجع</th>
+                </tr>
+            </thead>
+            <tbody>
+                @if (!Model.StockMovements.Any())
+                {
+                    <tr><td colspan="7" class="empty-cell">لا توجد حركات مخزون على هذه الوردية.</td></tr>
+                }
+                @foreach (var move in Model.StockMovements)
+                {
+                    <tr>
+                        <td>@move.OccurredAt.ToString("yyyy-MM-dd HH:mm")</td>
+                        <td>@move.Product?.Name</td>
+                        <td>@move.Reason</td>
+                        <td>@move.QuantityBefore.ToString("N3")</td>
+                        <td class="@(move.QuantityChange < 0 ? "text-danger" : "text-success")">@move.QuantityChange.ToString("N3")</td>
+                        <td>@move.QuantityAfter.ToString("N3")</td>
+                        <td>@move.Reference</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>

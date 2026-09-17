@@ -1,0 +1,78 @@
+@model SmartPOS_ERP.Models.Shift
+
+@{
+    ViewData["Title"] = "إقفال الوردية";
+    var expected = ViewBag.ExpectedCash as decimal? ?? 0m;
+}
+
+<div class="form-stack">
+    <div class="card border-0 shadow-sm">
+        <div class="card-header bg-transparent border-secondary py-3">
+            <h4 class="text-info mb-1"><i class="ti ti-player-stop me-2"></i>إقفال الوردية #@Model.Id</h4>
+            <p class="text-secondary small mb-0">قارن العدد الفعلي بالمتوقع ثم أكّد الإقفال.</p>
+        </div>
+        <div class="card-body p-4">
+            <section class="form-section">
+                <h5 class="form-section-title"><i class="ti ti-calculator"></i> ملخص الدرج</h5>
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <div class="detail-item">
+                            <div class="lbl">العهدة <help-tip>النقد الذي بدأ به الدرج عند فتح الوردية.</help-tip></div>
+                            <div>@Model.OpeningCash.ToString("N2") ج.م</div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="detail-item">
+                            <div class="lbl">المتوقع في الدرج <help-tip>العهدة + المبيعات النقدية − مرتجعات النقد. هذا ما يُفترض أن تجده عند العد.</help-tip></div>
+                            <div class="app-money fw-bold">@expected.ToString("N2") ج.م</div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <form asp-action="Close" method="post">
+                <input type="hidden" name="id" value="@Model.Id" />
+                <div asp-validation-summary="ModelOnly" class="alert alert-danger mb-3"></div>
+                <section class="form-section">
+                    <h5 class="form-section-title"><i class="ti ti-cash"></i> العد الفعلي</h5>
+                    <div class="mb-3">
+                        <label class="form-label" for="closingCash">العدد الفعلي في الدرج <help-tip>عدّ الأوراق النقدية بنفسك واكتب الناتج هنا. الفرق عن المتوقع يظهر عجزاً أو زيادة.</help-tip></label>
+                        <input id="closingCash" name="closingCash" type="number" step="0.01" min="0" class="form-control" value="@Model.ClosingCash" required />
+                        <span class="text-danger small">@Html.ValidationMessage("closingCash")</span>
+                        <div class="d-flex justify-content-between mt-2 small">
+                            <span class="text-secondary">الفرق (فعلي − متوقع)</span>
+                            <span id="cashDiff" class="fw-bold">@(((Model.ClosingCash ?? 0) - expected).ToString("N2")) ج.م</span>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">ملاحظات</label>
+                        <textarea name="notes" class="form-control" rows="3">@Model.Notes</textarea>
+                    </div>
+                </section>
+                <div class="d-flex gap-2">
+                    <button type="submit" class="btn btn-warning rounded-pill px-4 fw-bold">تأكيد الإقفال</button>
+                    <a asp-action="Index" class="btn btn-outline-secondary rounded-pill px-4">إلغاء</a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        (function () {
+            const expected = @expected.ToString(System.Globalization.CultureInfo.InvariantCulture);
+            const input = document.getElementById('closingCash');
+            const out = document.getElementById('cashDiff');
+            function updateDiff() {
+                const actual = parseFloat(input.value) || 0;
+                const diff = actual - expected;
+                out.textContent = diff.toFixed(2) + ' ج.م';
+                out.classList.toggle('text-danger', diff < 0);
+                out.classList.toggle('text-success', diff > 0);
+            }
+            input.addEventListener('input', updateDiff);
+            updateDiff();
+        })();
+    </script>
+}

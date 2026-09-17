@@ -1,0 +1,96 @@
+@model SmartPOS_ERP.Models.Order
+@{
+    Layout = null;
+    var store = ViewData["StoreSettings"] as StoreSettings;
+    var storeName = string.IsNullOrWhiteSpace(store?.StoreName) ? "Sama_POS" : store.StoreName;
+    var footer = string.IsNullOrWhiteSpace(store?.InvoiceFooter)
+        ? StoreSettingsService.DefaultInvoiceFooter
+        : store.InvoiceFooter;
+    var subtotal = Model.OrderDetails.Sum(d => d.Quantity * d.UnitPrice);
+}
+
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="utf-8" />
+    <title>إيصال #@Model.Id</title>
+    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+    <style>
+        body { background: #fff; color: #111; }
+        .receipt {
+            width: 76mm;
+            margin: 0 auto;
+            padding: 8px;
+            font-size: 13px;
+            font-family: Tahoma, Arial, sans-serif;
+        }
+        .receipt h1 { font-size: 18px; margin: 0 0 4px; text-align: center; }
+        .receipt table { width: 100%; border-collapse: collapse; }
+        .receipt td { padding: 3px 0; vertical-align: top; }
+        .muted { color: #555; text-align: center; }
+        .totals td { border-top: 1px dashed #999; }
+        @@media print {
+            @@page { size: 80mm auto; margin: 4mm; }
+            .no-print { display: none !important; }
+        }
+    </style>
+</head>
+<body>
+    <div class="receipt">
+        <h1>@storeName</h1>
+        @if (!string.IsNullOrWhiteSpace(store?.Phone))
+        {
+            <div class="muted">@store.Phone</div>
+        }
+        @if (!string.IsNullOrWhiteSpace(store?.Address))
+        {
+            <div class="muted">@store.Address</div>
+        }
+        <div class="muted mb-2">فاتورة #@Model.Id · @Model.OrderDate.ToString("yyyy/MM/dd HH:mm")</div>
+        <div class="muted">@PaymentMethods.Label(Model.PaymentMethod)</div>
+        <table>
+            @foreach (var detail in Model.OrderDetails)
+            {
+                <tr>
+                    <td>
+                        @detail.Product?.Name<br />
+                        <small>@detail.Quantity.ToString(detail.Product?.Unit == "Kilo" ? "N3" : "N0") × @detail.UnitPrice.ToString("N2")</small>
+                    </td>
+                    <td style="text-align:start">@((detail.Quantity * detail.UnitPrice).ToString("N2"))</td>
+                </tr>
+            }
+            <tr class="totals">
+                <td>المجموع</td>
+                <td style="text-align:start">@subtotal.ToString("N2")</td>
+            </tr>
+            @if (Model.DiscountAmount > 0)
+            {
+                <tr>
+                    <td>خصم</td>
+                    <td style="text-align:start">@Model.DiscountAmount.ToString("N2")-</td>
+                </tr>
+            }
+            @if (Model.TaxAmount > 0)
+            {
+                <tr>
+                    <td>ضريبة</td>
+                    <td style="text-align:start">@Model.TaxAmount.ToString("N2")</td>
+                </tr>
+            }
+            <tr>
+                <td><strong>الإجمالي</strong></td>
+                <td style="text-align:start"><strong>@Model.TotalAmount.ToString("N2") ج.م</strong></td>
+            </tr>
+        </table>
+        <p class="muted">@footer</p>
+        <div class="no-print text-center">
+            <button type="button" onclick="window.print()">طباعة</button>
+        </div>
+    </div>
+    <script>
+        window.addEventListener('load', function () {
+            window.print();
+        });
+    </script>
+</body>
+</html>

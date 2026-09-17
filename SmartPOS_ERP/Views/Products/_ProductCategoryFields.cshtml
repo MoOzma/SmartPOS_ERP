@@ -1,0 +1,28 @@
+@model SmartPOS_ERP.Models.Product
+@{
+    var categories = (ViewBag.Categories as IEnumerable<string>)?.ToList() ?? [];
+    foreach (var suggestion in ProductCategories.Suggestions)
+    {
+        if (!categories.Contains(suggestion, StringComparer.OrdinalIgnoreCase))
+        {
+            categories.Add(suggestion);
+        }
+    }
+}
+
+<div class="col-md-6 mb-3">
+    <label class="form-label" asp-for="Category">القسم <help-tip>تجميع الأصناف (مشروبات، منظفات...) لتصفيتها بسرعة في شاشة البيع.</help-tip></label>
+    <input asp-for="Category" class="form-control" list="productCategoryList" maxlength="50" placeholder="مثال: مشروبات" />
+    <datalist id="productCategoryList">
+        @foreach (var category in categories)
+        {
+            <option value="@category"></option>
+        }
+    </datalist>
+    <span class="form-hint">لتصفية الأصناف في شاشة البيع.</span>
+</div>
+<div class="col-md-6 mb-3">
+    <label class="form-label" asp-for="ExpiryDate">تاريخ الصلاحية <help-tip>اختياري. يظهر تنبيه على الصنف عند قرب الانتهاء أو بعده.</help-tip></label>
+    <input asp-for="ExpiryDate" type="date" class="form-control" />
+    <span class="form-hint">اختياري. يظهر تنبيه عند قرب الانتهاء.</span>
+</div>

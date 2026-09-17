@@ -17,6 +17,7 @@ namespace SmartPOS_ERP.Models
         public int ProductId { get; set; }
         public decimal PackageQuantity { get; set; } // الكمية بالعلبة
         public decimal UnitsPerPackage { get; set; }  // معامل التحويل
-        public decimal PackageCost { get; set; }      // سعر شراء العلبة
+        public decimal? PackageCost { get; set; }
+        public decimal? NewSalePrice { get; set; }
     }
 }

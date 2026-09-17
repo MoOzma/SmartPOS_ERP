@@ -1,69 +1,41 @@
-﻿@model SmartPOS_ERP.Models.Product
+@model SmartPOS_ERP.Models.Product
 
 @{
-    ViewData["Title"] = "Delete";
+    ViewData["Title"] = "حذف منتج";
 }
 
-<h1>Delete</h1>
-
-<h3>Are you sure you want to delete this?</h3>
-<div>
-    <h4>Product</h4>
-    <hr />
-    <dl class="row">
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.Name)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.Name)
-        </dd>
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.Barcode)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.Barcode)
-        </dd>
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.CostPrice)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.CostPrice)
-        </dd>
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.SalePrice)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.SalePrice)
-        </dd>
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.TrackInventory)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.TrackInventory)
-        </dd>
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.StockQuantity)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.StockQuantity)
-        </dd>
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.ReorderLevel)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.ReorderLevel)
-        </dd>
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.ImagePath)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.ImagePath)
-        </dd>
-    </dl>
-    
-    <form asp-action="Delete">
-        <input type="hidden" asp-for="Id" />
-        <input type="submit" value="Delete" class="btn btn-danger" /> |
-        <a asp-action="Index">Back to List</a>
-    </form>
+<div class="form-stack">
+    <div class="card border-danger shadow-sm">
+        <div class="card-header bg-transparent border-secondary py-3">
+            <h4 class="text-danger mb-0"><i class="ti ti-trash me-2"></i>تأكيد حذف المنتج</h4>
+        </div>
+        <div class="card-body p-4">
+            <p class="mb-4">هل أنت متأكد من حذف <strong class="text-info">@Model.Name</strong>؟ لا يمكن التراجع عن هذا الإجراء.</p>
+            <div class="row g-3 mb-4">
+                <div class="col-md-4">
+                    <div class="detail-item">
+                        <div class="lbl">الباركود</div>
+                        <div>@(string.IsNullOrWhiteSpace(Model.Barcode) ? "—" : Model.Barcode)</div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="detail-item">
+                        <div class="lbl">سعر البيع</div>
+                        <div class="app-money fw-bold">@Model.SalePrice.ToString("N2") ج.م</div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="detail-item">
+                        <div class="lbl">المخزون</div>
+                        <div>@Model.StockQuantity.ToString(Model.Unit == "Kilo" ? "N3" : "N0")</div>
+                    </div>
+                </div>
+            </div>
+            <form asp-action="Delete" class="d-flex gap-2">
+                <input type="hidden" asp-for="Id" />
+                <button type="submit" class="btn btn-danger rounded-pill px-4">حذف المنتج</button>
+                <a asp-action="Index" class="btn btn-outline-secondary rounded-pill px-4">إلغاء</a>
+            </form>
+        </div>
+    </div>
 </div>

@@ -1,0 +1,43 @@
+@model SmartPOS_ERP.Models.Product
+@{
+    var settings = ViewData["StoreSettings"] as StoreSettings ?? new StoreSettings();
+}
+
+<div class="col-12 mb-3">
+    <div class="form-switch-row mb-2">
+        <div class="form-check form-switch m-0">
+            <input class="form-check-input" type="checkbox" asp-for="UseCustomTax" id="useCustomTax" />
+            <label class="form-check-label" for="useCustomTax">تخصيص نسبة لهذا الصنف <help-tip>فعّله إذا كان الصنف بنسبة ضريبة مختلفة عن النسبة العامة في الإعدادات، أو معفياً (0%).</help-tip></label>
+        </div>
+    </div>
+    <p class="form-hint mb-2" id="taxDefaultHint">
+        @if (!settings.TaxEnabled)
+        {
+            <text>الضريبة متوقفة حالياً من إعدادات النظام. عند تفعيلها ستُستخدم النسبة العامة @settings.DefaultTaxRate.ToString("N2")%.</text>
+        }
+        else
+        {
+            <text>ستُستخدم النسبة العامة من الإعدادات (@settings.DefaultTaxRate.ToString("N2")%).</text>
+        }
+    </p>
+    <div id="customTaxWrap">
+        <label class="form-label" asp-for="TaxRate">نسبة الضريبة %</label>
+        <input asp-for="TaxRate" type="number" step="0.01" min="0" max="100" class="form-control" style="max-width: 200px;" />
+        <span asp-validation-for="TaxRate" class="text-danger small"></span>
+        <span class="form-hint">0% يعني الصنف معفي حتى لو كانت النسبة العامة أكبر.</span>
+    </div>
+</div>
+<script>
+    (function () {
+        const toggle = document.getElementById('useCustomTax');
+        const wrap = document.getElementById('customTaxWrap');
+        const hint = document.getElementById('taxDefaultHint');
+        if (!toggle || !wrap) return;
+        function sync() {
+            wrap.style.display = toggle.checked ? '' : 'none';
+            if (hint) hint.style.display = toggle.checked ? 'none' : '';
+        }
+        toggle.addEventListener('change', sync);
+        sync();
+    })();
+</script>

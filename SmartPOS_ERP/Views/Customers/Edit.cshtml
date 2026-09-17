@@ -1,0 +1,34 @@
+@model SmartPOS_ERP.Models.Customer
+@{
+    ViewData["Title"] = "تعديل عميل";
+}
+
+<div class="form-stack">
+    <div class="card border-0 shadow-sm">
+        <div class="card-header bg-transparent border-secondary py-3 d-flex justify-content-between align-items-center">
+            <h4 class="text-info mb-0"><i class="ti ti-pencil me-2"></i>تعديل: @Model.Name</h4>
+            <a asp-action="Index" class="btn btn-outline-secondary rounded-pill">رجوع</a>
+        </div>
+        <div class="card-body p-4">
+            <form asp-action="Edit" method="post">
+                <input type="hidden" asp-for="Id" />
+                <section class="form-section">
+                    <div class="mb-3">
+                        <label class="form-label" asp-for="Name">الاسم</label>
+                        <input asp-for="Name" class="form-control" required />
+                        <span asp-validation-for="Name" class="text-danger"></span>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label" asp-for="Phone">الهاتف</label>
+                        <input asp-for="Phone" class="form-control" dir="ltr" />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label" asp-for="Notes">ملاحظات</label>
+                        <textarea asp-for="Notes" class="form-control" rows="3"></textarea>
+                    </div>
+                </section>
+                <button type="submit" class="btn btn-primary rounded-pill px-4 fw-bold">حفظ</button>
+            </form>
+        </div>
+    </div>
+</div>

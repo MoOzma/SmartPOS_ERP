@@ -1,65 +1,78 @@
-﻿ @model SmartPOS_ERP.Models.PurchaseInvoice
+@model SmartPOS_ERP.Models.PurchaseInvoice
 
-<div class="container bg-dark text-white p-4 my-4 rounded shadow-lg" style="border: 1px solid #343a40;">
-    <div class="d-flex justify-content-between align-items-start border-bottom border-secondary pb-4 mb-4">
-        <div>
-            <h2 class="text-info mb-1">فاتورة توريد #@Model.Id</h2>
-            <p class="text-muted mb-0">تاريخ المعاملة: @Model.InvoiceDate.ToString("dd MMMM yyyy")</p>
-        </div>
-        <div class="text-end">
-            <h5 class="text-warning mb-1">المورد: @Model.Supplier?.Name</h5>
-            <button onclick="window.print()" class="btn btn-sm btn-outline-light mt-2">
-                <i class="fas fa-print me-1"></i> طباعة الفاتورة
-            </button>
-        </div>
-    </div>
+@{
+    ViewData["Title"] = $"فاتورة توريد #{Model.Id}";
+}
 
-    <div class="table-responsive">
-        <table class="table table-dark table-bordered border-secondary">
-            <thead class="bg-secondary bg-opacity-10 text-info">
-                <tr>
-                    <th>الصنف</th>
-                    <th class="text-center">الكمية (علبة/كجم)</th>
-                    <th class="text-center">سعر الوحدة</th>
-                    <th class="text-center">الإجمالي</th>
-                    <th class="text-center">الإجمالي</th>
-                </tr>
-            </thead>
-            <tbody>
-                @foreach (var detail in Model.Details)
+<div class="form-stack">
+    @if (TempData["Success"] is string success)
+    {
+        <div class="alert alert-success no-print">@success</div>
+    }
+    @if (TempData["Error"] is string error)
+    {
+        <div class="alert alert-danger no-print">@error</div>
+    }
+    <div class="card border-0 shadow-sm invoice-print">
+        <div class="card-header bg-transparent border-secondary py-3 d-flex justify-content-between align-items-start flex-wrap gap-2">
+            <div>
+                <h2 class="h4 text-info mb-1">فاتورة توريد #@Model.Id @(Model.IsVoided ? "(ملغاة)" : "")</h2>
+                <p class="text-secondary mb-0">تاريخ المعاملة: @Model.InvoiceDate.ToString("dd MMMM yyyy")</p>
+                @if (Model.IsVoided)
                 {
-                    <tr>
-                        <td>
-                            <div class="fw-bold">@detail.Product?.Name</div>
-                            <small class="text-white">ID: @detail.ProductId</small>
-                        </td>
-                        <td class="text-center">@detail.PackageQuantity</td>
-                        <td class="text-center">@detail.PackageCost.ToString("N2")</td>
-                        <td class="text-center fw-bold">@( (detail.PackageQuantity * detail.PackageCost).ToString("N2") )</td>
-                       
-                    </tr>
+                    <p class="text-danger mb-0">أُلغيت @(Model.VoidedAt?.ToString("yyyy/MM/dd HH:mm")) بواسطة @Model.VoidedBy</p>
                 }
-            </tbody>
-        </table>
-    </div>
-
-    <div class="row justify-content-end mt-4">
-        <div class="col-md-4">
-            <div class="p-3 rounded bg-secondary bg-opacity-10 border border-success">
-                <div class="d-flex justify-content-between align-items-center">
-                    <span class="fs-5">الإجمالي الكلي:</span>
-                    <span class="fs-3 fw-bold text-success">
-                        @Model.Details.Sum(d => d.PackageQuantity * d.PackageCost).ToString("N2") LE
-                    </span>
-                </div>
+            </div>
+            <div class="text-end">
+                <div class="app-money fw-bold mb-2">المورد: @Model.Supplier?.Name</div>
+                <button type="button" onclick="window.print()" class="btn btn-sm btn-outline-primary rounded-pill no-print">
+                    <i class="ti ti-printer me-1"></i>طباعة
+                </button>
+            </div>
+        </div>
+        <div class="card-body p-4">
+            <div class="table-responsive">
+                <table class="table table-hover mb-0">
+                    <thead>
+                        <tr>
+                            <th>الصنف</th>
+                            <th class="text-center">الكمية (علبة/كجم)</th>
+                            <th class="text-center">سعر الوحدة</th>
+                            <th class="text-center">الإجمالي</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var detail in Model.Details)
+                        {
+                            <tr>
+                                <td>
+                                    <div class="fw-bold">@detail.Product?.Name</div>
+                                    <small class="text-secondary">ID: @detail.ProductId</small>
+                                </td>
+                                <td class="text-center">@detail.PackageQuantity</td>
+                                <td class="text-center">@detail.PackageCost.ToString("N2")</td>
+                                <td class="text-center fw-bold app-money">@((detail.PackageQuantity * detail.PackageCost).ToString("N2"))</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+            <div class="d-flex justify-content-between align-items-center mt-4 p-3 form-section mb-0">
+                <span class="fs-5">الإجمالي الكلي</span>
+                <span class="fs-3 fw-bold app-money">
+                    @Model.Details.Sum(d => d.PackageQuantity * d.PackageCost).ToString("N2") ج.م
+                </span>
+            </div>
+            <div class="mt-4 no-print">
+                <a asp-action="Index" class="btn btn-outline-secondary rounded-pill px-4">العودة للسجل</a>
+                @if (!Model.IsVoided)
+                {
+                    <form asp-action="VoidPurchase" asp-route-id="@Model.Id" method="post" class="d-inline" onsubmit="return confirm('إلغاء الفاتورة يعيد الكميات للمخزن. متابعة؟');">
+                        <button type="submit" class="btn btn-outline-danger rounded-pill px-4">إلغاء الفاتورة</button>
+                    </form>
+                    <a asp-action="Return" asp-route-id="@Model.Id" class="btn btn-outline-warning rounded-pill px-4">مرتجع توريد</a>
+                }
             </div>
         </div>
     </div>
-
-    <div class="mt-4 pt-3 border-top border-secondary">
-        <a asp-action="Index" class="btn btn-outline-secondary rounded-pill px-4">
-            <i class="fas fa-arrow-right me-1"></i> العودة للسجل
-        </a>
-    </div>
 </div>
-

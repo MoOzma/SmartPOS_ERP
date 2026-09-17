@@ -1,44 +1,218 @@
-﻿@model IEnumerable<SmartPOS_ERP.Models.Expense>
+@model SmartPOS_ERP.Models.ExpenseReportViewModel
+@{
+    ViewData["Title"] = "سجل المصروفات";
+    var months = new[] { "يناير", "فبراير", "مارس", "أبريل", "مايو", "يونيو", "يوليو", "أغسطس", "سبتمبر", "أكتوبر", "نوفمبر", "ديسمبر" };
+    var isMonth = Model.PeriodKind == "month";
+    var isRange = Model.PeriodKind == "range";
+    var isDay = !isMonth && !isRange;
+}
 
-<div class="container-fluid bg-dark text-white p-4">
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <h2 class="text-info fw-bold">سجل المصروفات الإدارية</h2>
-        <a asp-action="Create" class="btn btn-info rounded-pill px-4">
-            <i class="fas fa-plus me-1"></i> إضافة مصروف
+<div class="page-head">
+    <div>
+        <h3 class="page-title"><i class="ti ti-wallet"></i> سجل المصروفات <help-tip>مصاريف تشغيل المحل (إيجار، كهرباء، نقل) وليست شراء بضاعة. تُخصم من صافي الربح في التقارير.</help-tip></h3>
+        <p class="page-sub">اختر يومًا أو شهرًا أو فترة من-إلى لعرض المصروفات حسب الفئة والتفاصيل.</p>
+    </div>
+    <div class="page-actions">
+        <button type="button" class="btn btn-outline-secondary rounded-pill no-print" onclick="window.print()">
+            <i class="ti ti-printer me-1"></i>طباعة
+        </button>
+        <a asp-action="Create" class="btn btn-primary rounded-pill no-print">
+            <i class="ti ti-plus me-1"></i>إضافة مصروف
         </a>
     </div>
+</div>
 
-    <div class="card bg-dark border-secondary shadow">
-        <div class="table-responsive">
-            <table class="table table-dark table-hover mb-0 align-middle">
-                <thead>
-                    <tr class="text-muted border-secondary">
-                        <th>التاريخ</th>
-                        <th>الفئة</th>
-                        <th>الوصف</th>
-                        <th>المبلغ</th>
-                        <th class="text-center">إجراءات</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @foreach (var item in Model)
+<form asp-action="Index" method="get" class="form-section no-print" id="expensePeriodForm">
+    <h5 class="form-section-title"><i class="ti ti-calendar"></i> الفترة</h5>
+    <div class="d-flex flex-wrap gap-2 mb-3">
+        <input type="radio" class="btn-check" name="period" id="periodDay" value="day" @(isDay ? "checked" : null)>
+        <label class="btn btn-outline-primary rounded-pill" for="periodDay">يوم محدد</label>
+        <input type="radio" class="btn-check" name="period" id="periodMonth" value="month" @(isMonth ? "checked" : null)>
+        <label class="btn btn-outline-primary rounded-pill" for="periodMonth">شهر محدد</label>
+        <input type="radio" class="btn-check" name="period" id="periodRange" value="range" @(isRange ? "checked" : null)>
+        <label class="btn btn-outline-primary rounded-pill" for="periodRange">فترة من / إلى</label>
+    </div>
+    <div class="row g-3 align-items-end">
+        <div class="col-md-4 js-day-fields">
+            <label class="form-label" for="selectedDate">اليوم</label>
+            <input type="date" id="selectedDate" name="selectedDate" value="@Model.SelectedDate.ToString("yyyy-MM-dd")" class="form-control">
+        </div>
+        <div class="col-md-3 js-month-fields">
+            <label class="form-label" for="selectedMonth">الشهر</label>
+            <select id="selectedMonth" name="selectedMonth" class="form-select">
+                @for (int i = 1; i <= 12; i++)
+                {
+                    if (i == Model.SelectedMonth)
                     {
-                        <tr>
-                            <td>@item.ExpenseDate.ToString("yyyy-MM-dd")</td>
-                            <td><span class="badge bg-secondary">@item.Category</span></td>
-                            <td>@item.Description</td>
-                            <td class="text-danger fw-bold">@item.Amount.ToString("N2") LE</td>
-                            <td class="text-center">
-                                <form asp-action="Delete" asp-route-id="@item.Id" method="post" onsubmit="return confirm('هل أنت متأكد من الحذف؟')">
-                                    <button type="submit" class="btn btn-sm btn-outline-danger border-0">
-                                        <i class="fas fa-trash"></i>
-                                    </button>
-                                </form>
-                            </td>
-                        </tr>
+                        <option value="@i" selected>@months[i - 1]</option>
                     }
-                </tbody>
-            </table>
+                    else
+                    {
+                        <option value="@i">@months[i - 1]</option>
+                    }
+                }
+            </select>
+        </div>
+        <div class="col-md-3 js-month-fields">
+            <label class="form-label" for="selectedYear">السنة</label>
+            <input type="number" id="selectedYear" name="selectedYear" value="@Model.SelectedYear" min="2000" max="2100" class="form-control">
+        </div>
+        <div class="col-md-3 js-range-fields">
+            <label class="form-label" for="fromDate">من</label>
+            <input type="date" id="fromDate" name="fromDate" value="@Model.FromDate.ToString("yyyy-MM-dd")" class="form-control">
+        </div>
+        <div class="col-md-3 js-range-fields">
+            <label class="form-label" for="toDate">إلى</label>
+            <input type="date" id="toDate" name="toDate" value="@Model.ToDate.ToString("yyyy-MM-dd")" class="form-control">
+        </div>
+        <div class="col-md-2">
+            <button type="submit" class="btn btn-primary w-100 rounded-pill">عرض</button>
+        </div>
+    </div>
+</form>
+
+<p class="text-secondary mb-3">نتائج <strong>@Model.PeriodLabel</strong></p>
+
+<div class="row g-3 mb-4">
+    <div class="col-md-6 col-xl-3">
+        <div class="stat-card">
+            <div class="stat-label">إجمالي المصروفات <help-tip>مجموع كل المصروفات التشغيلية المسجّلة في الفترة المختارة (إيجار، كهرباء، نقل...). ليست فواتير شراء البضاعة.</help-tip></div>
+            <p class="stat-value app-money text-danger">@Model.TotalAmount.ToString("N2") ج.م</p>
+        </div>
+    </div>
+    <div class="col-md-6 col-xl-3">
+        <div class="stat-card">
+            <div class="stat-label">عدد العمليات <help-tip>كم مصروف سُجّل في الفترة، كل قيد يُحسب عملية واحدة.</help-tip></div>
+            <p class="stat-value">@Model.Count</p>
+        </div>
+    </div>
+    <div class="col-md-6 col-xl-3">
+        <div class="stat-card">
+            <div class="stat-label">متوسط العملية <help-tip>إجمالي المصروفات ÷ عدد العمليات. يوضح متوسط حجم المصروف الواحد في الفترة.</help-tip></div>
+            <p class="stat-value app-money">@Model.AverageAmount.ToString("N2") ج.م</p>
+        </div>
+    </div>
+    <div class="col-md-6 col-xl-3">
+        <div class="stat-card">
+            <div class="stat-label">أعلى فئة <help-tip>فئة المصروف التي صُرف عليها أكبر مبلغ في الفترة (مثل إيجار أو كهرباء).</help-tip></div>
+            <p class="stat-value">@(string.IsNullOrWhiteSpace(Model.TopCategory) ? "—" : Model.TopCategory)</p>
         </div>
     </div>
 </div>
+
+<div class="card table-card border-0 shadow-sm mb-4">
+    <div class="card-header">المصروفات حسب الفئة <help-tip>توزيع المصروفات على الفئات. النسبة = مبلغ الفئة ÷ الإجمالي × 100.</help-tip></div>
+    <div class="table-responsive">
+        <table class="table table-hover mb-0 align-middle text-center">
+            <thead>
+                <tr>
+                    <th>الفئة</th>
+                    <th>عدد العمليات</th>
+                    <th>المبلغ</th>
+                    <th>النسبة <help-tip>حصة هذه الفئة من إجمالي مصروفات الفترة.</help-tip></th>
+                </tr>
+            </thead>
+            <tbody>
+                @if (Model.Categories.Count == 0)
+                {
+                    <tr>
+                        <td colspan="4" class="empty-cell">لا توجد مصروفات في الفترة المحددة.</td>
+                    </tr>
+                }
+                @foreach (var cat in Model.Categories)
+                {
+                    <tr>
+                        <td><span class="badge bg-secondary">@cat.Name</span></td>
+                        <td>@cat.Count</td>
+                        <td class="app-money text-danger fw-bold">@cat.Amount.ToString("N2") ج.م</td>
+                        <td>@cat.Percent.ToString("N1")%</td>
+                    </tr>
+                }
+            </tbody>
+            @if (Model.Categories.Count > 0)
+            {
+                <tfoot>
+                    <tr class="fw-bold">
+                        <td>الإجمالي</td>
+                        <td>@Model.Count</td>
+                        <td class="app-money text-danger">@Model.TotalAmount.ToString("N2") ج.م</td>
+                        <td>100%</td>
+                    </tr>
+                </tfoot>
+            }
+        </table>
+    </div>
+</div>
+
+<div class="card table-card border-0 shadow-sm">
+    <div class="card-header">تفاصيل المصروفات <help-tip>كل قيد مصروف في الفترة: التاريخ والفئة والوصف والمبلغ.</help-tip></div>
+    <div class="table-responsive">
+        <table class="table table-hover mb-0 align-middle">
+            <thead>
+                <tr>
+                    <th>التاريخ</th>
+                    <th>الفئة</th>
+                    <th>الوصف</th>
+                    <th>المبلغ</th>
+                    <th class="text-center no-print">إجراءات</th>
+                </tr>
+            </thead>
+            <tbody>
+                @if (Model.Items.Count == 0)
+                {
+                    <tr>
+                        <td colspan="5" class="empty-cell">لا توجد مصروفات في الفترة المحددة.</td>
+                    </tr>
+                }
+                @foreach (var item in Model.Items)
+                {
+                    <tr>
+                        <td>@item.ExpenseDate.ToString("yyyy/MM/dd")</td>
+                        <td><span class="badge bg-secondary">@item.Category</span></td>
+                        <td>@item.Description</td>
+                        <td class="text-danger fw-bold app-money">@item.Amount.ToString("N2") ج.م</td>
+                        <td class="text-center no-print">
+                            <form asp-action="Delete" asp-route-id="@item.Id" method="post" onsubmit="return confirm('هل أنت متأكد من الحذف؟')">
+                                <button type="submit" class="btn btn-sm btn-outline-danger border-0" aria-label="حذف المصروف">
+                                    <i class="ti ti-trash"></i>
+                                </button>
+                            </form>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+            @if (Model.Items.Count > 0)
+            {
+                <tfoot>
+                    <tr class="fw-bold">
+                        <td colspan="3">إجمالي الفترة</td>
+                        <td class="text-danger app-money">@Model.TotalAmount.ToString("N2") ج.م</td>
+                        <td class="no-print"></td>
+                    </tr>
+                </tfoot>
+            }
+        </table>
+    </div>
+</div>
+
+<script>
+    (function () {
+        var dayRadio = document.getElementById('periodDay');
+        var monthRadio = document.getElementById('periodMonth');
+        var rangeRadio = document.getElementById('periodRange');
+        var dayFields = document.querySelectorAll('.js-day-fields');
+        var monthFields = document.querySelectorAll('.js-month-fields');
+        var rangeFields = document.querySelectorAll('.js-range-fields');
+        function sync() {
+            var month = monthRadio && monthRadio.checked;
+            var range = rangeRadio && rangeRadio.checked;
+            dayFields.forEach(function (el) { el.classList.toggle('d-none', month || range); });
+            monthFields.forEach(function (el) { el.classList.toggle('d-none', !month); });
+            rangeFields.forEach(function (el) { el.classList.toggle('d-none', !range); });
+        }
+        if (dayRadio) dayRadio.addEventListener('change', sync);
+        if (monthRadio) monthRadio.addEventListener('change', sync);
+        if (rangeRadio) rangeRadio.addEventListener('change', sync);
+        sync();
+    })();
+</script>
