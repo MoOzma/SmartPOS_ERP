@@ -1,109 +1,223 @@
-﻿@model SmartPOS_ERP.Models.Product
+@model SmartPOS_ERP.Models.Product
 
 @{
-	ViewData["Title"] = "إضافة منتج جديد";
+    ViewData["Title"] = "إضافة منتج جديد";
 }
 
-<div class="container-fluid bg-dark text-white p-4" style="min-height: 90vh; background-color: #1a1d21 !important;">
-	<div class="row justify-content-center">
-		<div class="col-md-8">
-			<div class="card shadow-lg border-0" style="background-color: #25292e; border-radius: 15px;">
-				<div class="card-header border-secondary bg-transparent py-3">
-					<h4 class="text-info mb-0"><i class="fas fa-plus-circle me-2"></i> إضافة منتج جديد</h4>
-				</div>
-				<div class="card-body p-4">
-					<form asp-action="Create">
-						<div class="row">
-							<div class="col-md-6 mb-3">
-								<label class="form-label text-white">اسم المنتج</label>
-								<input asp-for="Name" class="form-control bg-dark text-white border-secondary rounded-pill px-3" required />
-							</div>
+<div class="form-stack">
+    <div class="card border-0 shadow-sm">
+        <div class="card-header bg-transparent border-secondary py-3 d-flex justify-content-between align-items-center flex-wrap gap-2">
+            <div>
+                <h4 class="text-info mb-1"><i class="ti ti-package-plus me-2"></i>إضافة منتج جديد</h4>
+                <p class="text-secondary small mb-0">أدخل بيانات الصنف مرة واحدة، ثم احفظه ليظهر في شاشة البيع.</p>
+            </div>
+            <a asp-action="Index" class="btn btn-outline-secondary rounded-pill">
+                <i class="ti ti-arrow-right me-1"></i>العودة للبيع
+            </a>
+        </div>
 
-							<div class="col-md-6 mb-3">
-								<label class="form-label text-white">الباركود</label>
-								<input asp-for="Barcode" class="form-control bg-dark text-white border-secondary rounded-pill px-3" />
-							</div>
+        <div class="card-body p-4">
+            <form asp-action="Create">
+                <div asp-validation-summary="All" class="alert alert-danger mb-3"></div>
 
-							<div class="col-md-4 mb-3">
-								<label class="form-label text-white">نوع وحدة البيع</label>
-								<select asp-for="Unit" id="UnitSelect" class="form-select bg-dark text-white border-secondary rounded-pill px-3" required>
-									<option value="">-- اختر النوع --</option>
-									<option value="Piece">بالقطعة (عدد)</option>
-									<option value="Kilo">بالكيلو (ميزان/جرامات)</option>
-								</select>
-								<span asp-validation-for="Unit" class="text-danger"></span>
-							</div>
+                <section class="form-section">
+                    <h5 class="form-section-title"><i class="ti ti-id"></i> بيانات المنتج</h5>
+                    <div class="row">
+                        <div class="col-md-8 mb-3">
+                            <label class="form-label" for="Name">اسم المنتج</label>
+                            <input asp-for="Name" class="form-control" placeholder="مثال: لبن كامل الدسم" required />
+                            <span asp-validation-for="Name" class="text-danger small"></span>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label" for="Barcode">الباركود <help-tip>رقم المنتج على العبوة. عند مسحه في شاشة البيع يُضاف الصنف مباشرة بدون كتابة الاسم.</help-tip></label>
+                            <input asp-for="Barcode" class="form-control" placeholder="اختياري" dir="ltr" />
+                            <span asp-validation-for="Barcode" class="text-danger small"></span>
+                            <span class="form-hint">الاسم لا يتكرر. الباركود اختياري، وإن وُجد يجب ألا يتكرر.</span>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label" for="UnitSelect">وحدة البيع <help-tip>قطعة: تُباع بالعدد. كيلو: تُباع بالوزن من الميزان في شاشة البيع.</help-tip></label>
+                            <select asp-for="Unit" id="UnitSelect" class="form-select" required>
+                                <option value="Piece">بالقطعة (عدد)</option>
+                                <option value="Kilo">بالكيلو (ميزان)</option>
+                            </select>
+                            <span asp-validation-for="Unit" class="text-danger small"></span>
+                            <span class="form-hint">تحدد طريقة إدخال الكمية في شاشة البيع.</span>
+                        </div>
+                        <partial name="_ProductCategoryFields" />
+                    </div>
+                </section>
 
-							<div class="col-md-4 mb-3">
-								<label id="salePriceLabel" class="form-label text-white">سعر البيع (LE)</label>
-								<input asp-for="SalePrice" type="number" step="0.01" class="form-control bg-dark text-white border-secondary rounded-pill px-3" required />
-							</div>
+                <section class="form-section" id="pieceCartonFields">
+                    <h5 class="form-section-title"><i class="ti ti-box"></i> بيانات الكرتون <help-tip>سعر شراء القطعة = سعر الكرتون ÷ عدد القطع. هذا الرقم هو أساس حساب الربح. الكمية = عدد الكراتين × القطع.</help-tip></h5>
+                    <div class="row">
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label" for="CartonCount">عدد الكراتين</label>
+                            <input asp-for="CartonCount" type="number" step="1" min="0" class="form-control" />
+                            <span asp-validation-for="CartonCount" class="text-danger small"></span>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label" for="CartonPrice">سعر الكرتون (ج.م)</label>
+                            <input asp-for="CartonPrice" type="number" step="0.01" min="0.01" class="form-control" />
+                            <span asp-validation-for="CartonPrice" class="text-danger small"></span>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label" for="PiecesPerCarton">عدد القطع في الكرتون</label>
+                            <input asp-for="PiecesPerCarton" type="number" step="1" min="1" class="form-control" />
+                            <span asp-validation-for="PiecesPerCarton" class="text-danger small"></span>
+                        </div>
+                    </div>
+                </section>
 
-							<div class="col-md-4 mb-3">
-								<label id="stockLabel" class="form-label text-white">الكمية المتوفرة</label>
-								<input asp-for="StockQuantity" type="number" step="0.001" class="form-control bg-dark text-white border-secondary rounded-pill px-3" required />
-							</div>
+                <section class="form-section">
+                    <h5 class="form-section-title"><i class="ti ti-cash"></i> الأسعار والضريبة</h5>
+                    <div class="row">
+                        <div class="col-md-4 mb-3">
+                            <label id="salePriceLabel" class="form-label" for="SalePrice">سعر البيع (ج.م)</label>
+                            <input asp-for="SalePrice" type="number" step="0.01" min="0.01" class="form-control" required />
+                            <span asp-validation-for="SalePrice" class="text-danger small"></span>
+                            <span class="form-hint">يجب أن يكون أعلى من سعر شراء القطعة.</span>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label id="costPriceLabel" class="form-label" for="CostPrice">سعر الشراء (ج.م) <help-tip>تكلفة القطعة للمحل. تُحسب من سعر الكرتون ÷ عدد القطع، وتُستخدم لحساب الربح. يمكنك زيادتها لا خفضها عن الناتج.</help-tip></label>
+                            <input asp-for="CostPrice" type="number" step="0.01" min="0.01" class="form-control" required />
+                            <span asp-validation-for="CostPrice" class="text-danger small"></span>
+                            <span id="costHint" class="form-hint">يظهر تلقائياً من سعر الكرتون ÷ عدد القطع.</span>
+                        </div>
+                        <partial name="_ProductTaxFields" />
+                    </div>
+                </section>
 
-								<div class="col-md-4 mb-3">
-									<label id="costPriceLabel" class="form-label text-white">سعر الشراء (التكلفة)</label>
-									<input asp-for="CostPrice" type="number" step="0.01" class="form-control bg-dark text-white border-secondary rounded-pill px-3" required />
-								</div>
-							<div class="col-md-4 mb-3">
-								<label class="form-label text-white">حد إعادة الطلب</label>
-								<input asp-for="ReorderLevel" class="form-control bg-dark text-white border-secondary rounded-pill px-3" />
-							</div>
-						</div>
+                <section class="form-section">
+                    <h5 class="form-section-title"><i class="ti ti-packages"></i> المخزون</h5>
+                    <div class="form-switch-row mb-3">
+                        <div class="form-check form-switch m-0">
+                            <input class="form-check-input" type="checkbox" asp-for="TrackInventory" id="trackStock" />
+                            <label class="form-check-label" for="trackStock">تتبع كمية هذا المنتج في المخزن <help-tip>عند التفعيل ينقص المخزون مع كل بيع ويمنع البيع بأكثر من المتاح. أطفئه للخدمات أو الأصناف التي لا تُعدّ.</help-tip></label>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label id="stockLabel" class="form-label" for="StockQuantity">الكمية المتوفرة</label>
+                            <input asp-for="StockQuantity" type="number" step="0.001" min="0" class="form-control" required />
+                            <span asp-validation-for="StockQuantity" class="text-danger small"></span>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label" for="ReorderLevel">حد إعادة الطلب <help-tip>عندما تصل الكمية لهذا الرقم يظهر الصنف في تقرير نواقص المخزن لتنبيهك بالشراء.</help-tip></label>
+                            <input asp-for="ReorderLevel" type="number" min="0" class="form-control" />
+                            <span asp-validation-for="ReorderLevel" class="text-danger small"></span>
+                            <span class="form-hint">ينبّهك التقرير عندما تصل الكمية لهذا الحد.</span>
+                        </div>
+                    </div>
+                </section>
 
-
-						<div class="d-flex gap-2 mt-4">
-							<button type="submit" class="btn btn-info rounded-pill px-5 fw-bold">حفظ المنتج</button>
-							<a asp-action="Index" class="btn btn-outline-secondary rounded-pill px-4">إلغاء</a>
-						</div>
-					</form>
-				</div>
-			</div>
-		</div>
-	</div>
+                <div class="d-flex flex-wrap gap-2 mt-2">
+                    <button type="submit" class="btn btn-primary rounded-pill px-4 fw-bold">
+                        <i class="ti ti-device-floppy me-1"></i>حفظ المنتج
+                    </button>
+                    <a asp-action="Index" class="btn btn-outline-secondary rounded-pill px-4">إلغاء</a>
+                </div>
+            </form>
+        </div>
+    </div>
 </div>
 
 @section Scripts {
-	<script>
-		// دالة تغيير المسميات بناءً على الوحدة
-		document.getElementById('UnitSelect').addEventListener('change', function () {
-			const unit = this.value;
-			const saleLabel = document.getElementById('salePriceLabel');
-			const costLabel = document.getElementById('costPriceLabel');
-			const stockLabel = document.getElementById('stockLabel');
+    @{
+        await Html.RenderPartialAsync("_ValidationScriptsPartial");
+    }
+    <script>
+        (function () {
+            const unitSelect = document.getElementById('UnitSelect');
+            const saleLabel = document.getElementById('salePriceLabel');
+            const costLabel = document.getElementById('costPriceLabel');
+            const stockLabel = document.getElementById('stockLabel');
+            const cartonFields = document.getElementById('pieceCartonFields');
+            const cartonCount = document.getElementById('CartonCount');
+            const cartonPrice = document.getElementById('CartonPrice');
+            const piecesPer = document.getElementById('PiecesPerCarton');
+            const saleInput = document.getElementById('SalePrice');
+            const costInput = document.getElementById('CostPrice');
+            const stockInput = document.getElementById('StockQuantity');
+            const costHint = document.getElementById('costHint');
 
-			if (unit === "Kilo") {
-				saleLabel.innerHTML = '<i class="fas fa-balance-scale me-1 text-info"></i> سعر الكيلو (بيع)';
-				costLabel.innerHTML = '<i class="fas fa-tag me-1 text-info"></i> سعر الكيلو (شراء)';
-				stockLabel.innerHTML = '<i class="fas fa-weight me-1 text-info"></i> الوزن الحالي (كجم)';
-			} else if (unit === "Piece") {
-				saleLabel.innerHTML = '<i class="fas fa-coins me-1 text-warning"></i> سعر القطعة (بيع)';
-				costLabel.innerHTML = '<i class="fas fa-shopping-cart me-1 text-warning"></i> سعر القطعة (شراء)';
-				stockLabel.innerHTML = '<i class="fas fa-boxes me-1 text-warning"></i> الكمية الحالية (عدد)';
-			} else {
-				salePriceLabel.innerText = "سعر البيع (LE)";
-				costPriceLabel.innerText = "سعر الشراء (التكلفة)";
-				stockLabel.innerText = "الكمية المتوفرة";
-			}
-		});
-	</script>
+            function pieceUnitCost() {
+                const price = parseFloat(cartonPrice.value);
+                const pcs = parseFloat(piecesPer.value);
+                if (!(price > 0) || !(pcs > 0)) return null;
+                return Math.round((price / pcs) * 100) / 100;
+            }
+
+            function syncUnitLabels() {
+                const unit = unitSelect.value;
+                const isPiece = unit === 'Piece';
+                cartonFields.hidden = !isPiece;
+                cartonPrice.required = isPiece;
+                piecesPer.required = isPiece;
+                if (unit === 'Kilo') {
+                    saleLabel.textContent = 'سعر الكيلو (بيع)';
+                    costLabel.textContent = 'سعر الكيلو (شراء)';
+                    stockLabel.textContent = 'الوزن الحالي (كجم)';
+                    costHint.textContent = 'تكلفة الكيلو للمحل. تُستخدم لحساب الربح.';
+                } else {
+                    saleLabel.textContent = 'سعر القطعة (بيع)';
+                    costLabel.textContent = 'سعر القطعة (شراء)';
+                    stockLabel.textContent = 'الكمية الحالية (عدد)';
+                    costHint.textContent = 'يظهر تلقائياً من سعر الكرتون ÷ عدد القطع.';
+                }
+            }
+
+            function fillFromCarton() {
+                if (unitSelect.value !== 'Piece') {
+                    costInput.setCustomValidity('');
+                    return;
+                }
+                const unitCost = pieceUnitCost();
+                if (unitCost != null) {
+                    costInput.value = unitCost.toFixed(2);
+                    const count = parseFloat(cartonCount.value);
+                    const pcs = parseFloat(piecesPer.value);
+                    if (!isNaN(count) && count >= 0 && pcs > 0) {
+                        stockInput.value = String(count * pcs);
+                    }
+                }
+                syncCostFloor();
+                syncMarkup();
+            }
+
+            function syncCostFloor() {
+                const unitCost = pieceUnitCost();
+                const cost = parseFloat(costInput.value);
+                if (unitSelect.value === 'Piece' && unitCost != null && cost > 0 && cost < unitCost) {
+                    costInput.setCustomValidity('سعر القطعة أقل من ناتج سعر الكرتون ÷ عدد القطع، وهذا يضخّم الربح.');
+                } else {
+                    costInput.setCustomValidity('');
+                }
+            }
+
+            function syncMarkup() {
+                const sale = parseFloat(saleInput.value);
+                const cost = parseFloat(costInput.value);
+                if (sale > 0 && cost > 0 && sale <= cost) {
+                    saleInput.setCustomValidity('سعر البيع يجب أن يكون أكبر من سعر الشراء.');
+                } else {
+                    saleInput.setCustomValidity('');
+                }
+            }
+
+            unitSelect.addEventListener('change', function () {
+                syncUnitLabels();
+                fillFromCarton();
+            });
+            cartonCount.addEventListener('input', fillFromCarton);
+            cartonPrice.addEventListener('input', fillFromCarton);
+            piecesPer.addEventListener('input', fillFromCarton);
+            costInput.addEventListener('input', function () {
+                syncCostFloor();
+                syncMarkup();
+            });
+            saleInput.addEventListener('input', syncMarkup);
+            syncUnitLabels();
+            fillFromCarton();
+        })();
+    </script>
 }
-
-<style>
-	.form-control:focus, .form-select:focus {
-		background-color: #1a1d21 !important;
-		border-color: #0dcaf0 !important;
-		color: white !important;
-		box-shadow: 0 0 8px rgba(13, 202, 240, 0.2);
-	}
-
-	label {
-		font-size: 0.9rem;
-		margin-bottom: 8px;
-		display: block;
-		transition: all 0.3s ease;
-	}
-</style>

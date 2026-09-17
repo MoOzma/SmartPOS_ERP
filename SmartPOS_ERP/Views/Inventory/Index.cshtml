@@ -1,0 +1,162 @@
+@model IEnumerable<SmartPOS_ERP.Models.Product>
+@{
+    ViewData["Title"] = "جرد وتسوية المخزن";
+    var openShiftId = ViewBag.OpenShiftId as int?;
+    var recent = ViewBag.Recent as IEnumerable<StockLedger> ?? [];
+    var products = Model.ToList();
+    var stockValue = products.Sum(p => p.StockQuantity * p.CostPrice);
+    var trackedCount = products.Count;
+}
+
+<div class="page-head">
+    <div>
+        <h3 class="page-title"><i class="ti ti-adjustments"></i> جرد وتسوية المخزن <help-tip>عدّل كمية صنف بدون فاتورة توريد: جرد فعلي، تلف، تصحيح خطأ، أو انتهاء صلاحية. يلزم وردية مفتوحة.</help-tip></h3>
+        <p class="page-sub">عدّل الكمية بدون فاتورة توريد وهمية: جرد، تلف، تصحيح، أو انتهاء صلاحية.</p>
+    </div>
+</div>
+
+@if (TempData["Success"] is string success)
+{
+    <div class="alert alert-success">@success</div>
+}
+@if (TempData["Error"] is string error)
+{
+    <div class="alert alert-danger">@error</div>
+}
+
+@if (!openShiftId.HasValue)
+{
+    <div class="alert alert-warning">يجب فتح وردية أولاً قبل تسوية المخزن.</div>
+}
+
+<div class="row g-3 mb-4">
+    <div class="col-md-4">
+        <div class="stat-card">
+            <div class="stat-label">قيمة المخزون <help-tip>مجموع الكمية × سعر التكلفة لكل الأصناف المتتبَّع مخزونها.</help-tip></div>
+            <p class="stat-value text-warning">@stockValue.ToString("N2") ج.م</p>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="stat-card">
+            <div class="stat-label">عدد الأصناف <help-tip>الأصناف التي يُتابع مخزونها في الجرد.</help-tip></div>
+            <p class="stat-value">@trackedCount</p>
+        </div>
+    </div>
+</div>
+
+<form asp-action="Adjust" method="post" class="form-section mb-4">
+    <h5 class="form-section-title"><i class="ti ti-package"></i> تسوية صنف</h5>
+    <div class="row g-3 align-items-end">
+        <div class="col-md-4">
+            <label class="form-label" for="ProductId">الصنف</label>
+            <select name="ProductId" id="ProductId" class="form-select" required>
+                <option value="">اختر صنفاً</option>
+            @foreach (var product in products)
+            {
+                <option value="@product.Id">@product.Name — الحالي @product.StockQuantity.ToString(product.Unit == "Kilo" ? "N3" : "N0")</option>
+            }
+            </select>
+        </div>
+        <div class="col-md-2">
+            <label class="form-label" for="NewQuantity">الكمية الجديدة <help-tip>اكتب الكمية الموجودة فعلياً بعد العد. النظام يحسب الفرق ويُسجّله في دفتر الحركة.</help-tip></label>
+            <input type="number" step="0.001" min="0" name="NewQuantity" id="NewQuantity" class="form-control" required />
+        </div>
+        <div class="col-md-3">
+            <label class="form-label" for="Reason">السبب <help-tip>يوضح سبب تغيير الكمية في التقارير ودفتر الحركة: جرد، تلف، تصحيح، أو صلاحية.</help-tip></label>
+            <select name="Reason" id="Reason" class="form-select">
+                @foreach (var reason in StockAdjustmentReasons.All)
+                {
+                    <option value="@reason.Value">@reason.Label</option>
+                }
+            </select>
+        </div>
+        <div class="col-md-3">
+            <label class="form-label" for="Notes">ملاحظات</label>
+            <input type="text" name="Notes" id="Notes" class="form-control" maxlength="200" />
+        </div>
+        <div class="col-12">
+            <button type="submit" class="btn btn-primary rounded-pill px-4" @(openShiftId.HasValue ? null : "disabled")>حفظ التسوية</button>
+        </div>
+    </div>
+</form>
+
+<div class="card table-card border-0 shadow-sm mb-4">
+    <div class="card-header">المخزن الحالي <help-tip>كل صنف متتبَّع: الكمية وسعر التكلفة والقيمة = الكمية × التكلفة.</help-tip></div>
+    <div class="table-responsive">
+        <table class="table table-hover mb-0 align-middle">
+            <thead>
+                <tr>
+                    <th>الصنف</th>
+                    <th>القسم</th>
+                    <th>الكمية</th>
+                    <th>التكلفة</th>
+                    <th>القيمة</th>
+                    <th>الصلاحية</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var product in products)
+                {
+                    var expired = product.ExpiryDate is DateTime expiry && expiry.Date < DateTime.Today;
+                    var expiring = product.ExpiryDate is DateTime soon && soon.Date >= DateTime.Today && soon.Date <= DateTime.Today.AddDays(7);
+                    <tr>
+                        <td class="fw-bold">@product.Name</td>
+                        <td>@(string.IsNullOrWhiteSpace(product.Category) ? "—" : product.Category)</td>
+                        <td>@product.StockQuantity.ToString(product.Unit == "Kilo" ? "N3" : "N0")</td>
+                        <td class="app-money">@product.CostPrice.ToString("N2") ج.م</td>
+                        <td class="app-money">@((product.StockQuantity * product.CostPrice).ToString("N2")) ج.م</td>
+                        <td>
+                            @if (product.ExpiryDate is DateTime date)
+                            {
+                                <span class="@(expired ? "text-danger" : expiring ? "text-warning" : "")">@date.ToString("yyyy/MM/dd")</span>
+                            }
+                            else
+                            {
+                                <span>—</span>
+                            }
+                        </td>
+                    </tr>
+                }
+                @if (trackedCount == 0)
+                {
+                    <tr><td colspan="6" class="empty-cell">لا توجد أصناف متتبَّعة في المخزن.</td></tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<div class="card table-card border-0 shadow-sm">
+    <div class="card-header">آخر التسويات</div>
+    <div class="table-responsive">
+        <table class="table table-hover mb-0 align-middle">
+            <thead>
+                <tr>
+                    <th>التاريخ</th>
+                    <th>الصنف</th>
+                    <th>قبل</th>
+                    <th>التغيير</th>
+                    <th>بعد</th>
+                    <th>السبب</th>
+                </tr>
+            </thead>
+            <tbody>
+                @if (!recent.Any())
+                {
+                    <tr><td colspan="6" class="empty-cell">لا توجد تسويات بعد.</td></tr>
+                }
+                @foreach (var row in recent)
+                {
+                    <tr>
+                        <td>@row.OccurredAt.ToString("yyyy/MM/dd HH:mm")</td>
+                        <td>@(row.Product?.Name ?? "#"+row.ProductId)</td>
+                        <td>@row.QuantityBefore.ToString("N3")</td>
+                        <td class="@(row.QuantityChange < 0 ? "text-danger" : "text-success")">@row.QuantityChange.ToString("N3")</td>
+                        <td>@row.QuantityAfter.ToString("N3")</td>
+                        <td>@row.Reason</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>

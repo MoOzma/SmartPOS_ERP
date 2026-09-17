@@ -1,0 +1,94 @@
+@model string
+@{
+    var prefix = string.IsNullOrWhiteSpace(Model) ? "nav" : Model;
+    var ctrl = ViewContext.RouteData.Values["controller"]?.ToString() ?? "";
+    var act = ViewContext.RouteData.Values["action"]?.ToString() ?? "";
+    bool Is(string c, string? a = null) => string.Equals(ctrl, c, StringComparison.OrdinalIgnoreCase) && (a == null || string.Equals(act, a, StringComparison.OrdinalIgnoreCase));
+    var supplyOpen = Is("Purchases");
+    var brandController = AppPermissions.Has(User, AppPermissions.Dashboard) ? "Dashboard" : "Products";
+    var store = ViewData["StoreSettings"] as StoreSettings;
+    var storeName = string.IsNullOrWhiteSpace(store?.StoreName) ? "Sama_POS" : store.StoreName;
+}
+
+<a class="app-brand" asp-controller="@brandController" asp-action="Index" title="@storeName">
+    @if (!string.IsNullOrWhiteSpace(store?.LogoPath))
+    {
+        <img src="@store.LogoPath" alt="" class="app-brand-logo" />
+    }
+    else
+    {
+        <i class="ti ti-building-store"></i>
+    }
+    <span class="app-brand-text">@storeName</span>
+</a>
+
+<div class="app-nav-label">أساسي</div>
+@if (AppPermissions.Has(User, AppPermissions.Dashboard))
+{
+    <a class="app-nav-link @(Is("Dashboard") ? "active" : "")" asp-controller="Dashboard" asp-action="Index" title="لوحة التحكم">
+        <i class="ti ti-layout-dashboard"></i> <span class="app-nav-text">لوحة التحكم</span>
+    </a>
+    <a class="app-nav-link @(Is("Reports") ? "active" : "")" asp-controller="Reports" asp-action="Index" title="الأرباح والمبيعات">
+        <i class="ti ti-chart-bar"></i> <span class="app-nav-text">الأرباح والمبيعات</span>
+    </a>
+}
+<a class="app-nav-link @(Is("Products", "Index") ? "active" : "")" asp-controller="Products" asp-action="Index" title="شاشة البيع">
+    <i class="ti ti-device-desktop"></i> <span class="app-nav-text">شاشة البيع</span>
+</a>
+<a class="app-nav-link @(Is("Shifts") ? "active" : "")" asp-controller="Shifts" asp-action="Index" title="الورديات">
+    <i class="ti ti-clock-hour-4"></i> <span class="app-nav-text">الورديات</span>
+</a>
+<a class="app-nav-link @(Is("Order") ? "active" : "")" asp-controller="Order" asp-action="Index" title="الفواتير">
+    <i class="ti ti-receipt"></i> <span class="app-nav-text">الفواتير</span>
+</a>
+<a class="app-nav-link @(Is("Customers") ? "active" : "")" asp-controller="Customers" asp-action="Index" title="العملاء">
+    <i class="ti ti-users-group"></i> <span class="app-nav-text">العملاء</span>
+</a>
+
+@if (User.IsInRole("Admin") || AppPermissions.Has(User, AppPermissions.Expenses) || AppPermissions.Has(User, AppPermissions.Purchases) || AppPermissions.Has(User, AppPermissions.Products))
+{
+    <div class="app-nav-label">الإدارة</div>
+    @if (User.IsInRole("Admin"))
+    {
+        <a class="app-nav-link @(Is("Users") ? "active" : "")" asp-controller="Users" asp-action="Index" title="الموظفين">
+            <i class="ti ti-users"></i> <span class="app-nav-text">الموظفين</span>
+        </a>
+    }
+    @if (AppPermissions.Has(User, AppPermissions.Expenses))
+    {
+        <a class="app-nav-link @(Is("Expenses") ? "active" : "")" asp-controller="Expenses" asp-action="Index" title="المصروفات">
+            <i class="ti ti-wallet"></i> <span class="app-nav-text">المصروفات</span>
+        </a>
+    }
+
+    @if (AppPermissions.Has(User, AppPermissions.Purchases))
+    {
+        <button class="app-nav-link app-nav-toggle @(supplyOpen ? "active" : "")" type="button" data-bs-toggle="collapse" data-bs-target="#@(prefix)SupplyGroup" aria-expanded="@(supplyOpen ? "true" : "false")" title="التوريد">
+            <i class="ti ti-packages"></i> <span class="app-nav-text">التوريد</span>
+            <i class="ti ti-chevron-down app-nav-caret ms-auto"></i>
+        </button>
+        <div class="collapse @(supplyOpen ? "show" : "")" id="@(prefix)SupplyGroup">
+            <a class="app-nav-link @(Is("Purchases", "Suppliers") || Is("Purchases", "CreateSupplier") || Is("Purchases", "EditSupplier") ? "active" : "")" asp-controller="Purchases" asp-action="Suppliers" title="الموردين">
+                <i class="ti ti-truck"></i> <span class="app-nav-text">الموردين</span>
+            </a>
+            <a class="app-nav-link @(Is("Purchases", "Index") ? "active" : "")" asp-controller="Purchases" asp-action="Index" title="فواتير التوريد">
+                <i class="ti ti-clipboard-list"></i> <span class="app-nav-text">فواتير التوريد</span>
+            </a>
+            <a class="app-nav-link @(Is("Purchases", "Create") ? "active" : "")" asp-controller="Purchases" asp-action="Create" title="توريد">
+                <i class="ti ti-package-import"></i> <span class="app-nav-text">توريد</span>
+            </a>
+        </div>
+    }
+    @if (AppPermissions.Has(User, AppPermissions.Products))
+    {
+        <a class="app-nav-link @(Is("Inventory") ? "active" : "")" asp-controller="Inventory" asp-action="Index" title="جرد المخزن">
+            <i class="ti ti-adjustments"></i> <span class="app-nav-text">جرد المخزن</span>
+        </a>
+    }
+    @if (User.IsInRole("Admin"))
+    {
+        <a class="app-nav-link @(Is("Settings") ? "active" : "")" asp-controller="Settings" asp-action="Index" title="إعدادات النظام">
+            <i class="ti ti-settings"></i> <span class="app-nav-text">إعدادات النظام</span>
+        </a>
+    }
+}

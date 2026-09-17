@@ -7,6 +7,9 @@ public class SupplierPayment
     public decimal AmountPaid { get; set; } // المبلغ المدفوع
     public DateTime PaymentDate { get; set; }
     public string? Notes { get; set; } // ملاحظات (مثلاً: دفع نقدي، تحويل بنكي)
+    public bool FromCash { get; set; } = true;
+    public int? ShiftId { get; set; }
+    public Shift? Shift { get; set; }
 
     public Supplier Supplier { get; set; }
 }

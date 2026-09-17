@@ -1,44 +1,190 @@
-﻿<div class="container-fluid bg-dark text-white p-4">
-    <div class="row mb-4 align-items-end">
-        <div class="col-md-4">
-            <form asp-action="Index" method="get" class="card bg-secondary bg-opacity-10 border-info p-3">
-                <label class="form-label text-info small">عرض مبيعات يوم محدد:</label>
-                <div class="input-group">
-                    <input type="date" name="selectedDate" value="@ViewBag.SelectedDate" class="form-control bg-dark text-white border-secondary">
-                    <button type="submit" class="btn btn-info">بحث</button>
-                </div>
-            </form>
-        </div>
+﻿@model SmartPOS_ERP.Models.SalesProfitReportViewModel
+@{
+    ViewData["Title"] = "تقرير الأرباح والمبيعات";
+    var months = new[] { "يناير", "فبراير", "مارس", "أبريل", "مايو", "يونيو", "يوليو", "أغسطس", "سبتمبر", "أكتوبر", "نوفمبر", "ديسمبر" };
+    var isMonth = Model.PeriodKind == "month";
+    var isRange = Model.PeriodKind == "range";
+    var isDay = !isMonth && !isRange;
+    var profitClass = Model.NetProfit < 0 ? "text-danger" : "text-success";
+    var margin = Model.NetSales > 0 ? (Model.NetProfit / Model.NetSales) * 100 : 0m;
+}
 
-        <div class="col-md-6">
-            <form asp-action="Index" method="get" class="card bg-secondary bg-opacity-10 border-warning p-3">
-                <label class="form-label text-warning small">عرض مبيعات شهر وسنة:</label>
-                <div class="input-group">
-                    <select name="selectedMonth" class="form-select bg-dark text-white border-secondary">
-                        @for (int i = 1; i <= 12; i++)
-                        {
-                            <option value="@i" selected="@(i == ViewBag.SelectedMonth)">@i</option>
-                        }
-                    </select>
-                    <input type="number" name="selectedYear" value="@ViewBag.SelectedYear" class="form-control bg-dark text-white border-secondary">
-                    <button type="submit" class="btn btn-warning">عرض الشهر</button>
-                </div>
-            </form>
+<div class="page-head">
+    <div>
+        <h3 class="page-title"><i class="ti ti-chart-bar"></i> الأرباح والمبيعات <help-tip>تقرير الربح للفترة التي تختارها: يوم أو شهر أو من تاريخ إلى تاريخ.</help-tip></h3>
+        <p class="page-sub">اختر يومًا أو شهرًا أو فترة من-إلى لعرض المبيعات وصافي الربح.</p>
+    </div>
+    <div class="page-actions">
+        <button type="button" class="btn btn-outline-secondary rounded-pill" onclick="window.print()">
+            <i class="ti ti-printer me-1"></i>طباعة
+        </button>
+    </div>
+</div>
+
+<form asp-action="Index" method="get" class="form-section no-print" id="reportPeriodForm">
+    <h5 class="form-section-title"><i class="ti ti-calendar"></i> الفترة</h5>
+    <div class="d-flex flex-wrap gap-2 mb-3">
+        <input type="radio" class="btn-check" name="period" id="periodDay" value="day" @(isDay ? "checked" : null)>
+        <label class="btn btn-outline-primary rounded-pill" for="periodDay">يوم محدد</label>
+        <input type="radio" class="btn-check" name="period" id="periodMonth" value="month" @(isMonth ? "checked" : null)>
+        <label class="btn btn-outline-primary rounded-pill" for="periodMonth">شهر محدد</label>
+        <input type="radio" class="btn-check" name="period" id="periodRange" value="range" @(isRange ? "checked" : null)>
+        <label class="btn btn-outline-primary rounded-pill" for="periodRange">فترة من / إلى</label>
+    </div>
+    <div class="row g-3 align-items-end">
+        <div class="col-md-4 js-day-fields">
+            <label class="form-label" for="selectedDate">اليوم</label>
+            <input type="date" id="selectedDate" name="selectedDate" value="@Model.SelectedDate.ToString("yyyy-MM-dd")" class="form-control">
+        </div>
+        <div class="col-md-3 js-month-fields">
+            <label class="form-label" for="selectedMonth">الشهر</label>
+            <select id="selectedMonth" name="selectedMonth" class="form-select">
+                @for (int i = 1; i <= 12; i++)
+                {
+                    if (i == Model.SelectedMonth)
+                    {
+                        <option value="@i" selected>@months[i - 1]</option>
+                    }
+                    else
+                    {
+                        <option value="@i">@months[i - 1]</option>
+                    }
+                }
+            </select>
+        </div>
+        <div class="col-md-3 js-month-fields">
+            <label class="form-label" for="selectedYear">السنة</label>
+            <input type="number" id="selectedYear" name="selectedYear" value="@Model.SelectedYear" min="2000" max="2100" class="form-control">
+        </div>
+        <div class="col-md-3 js-range-fields">
+            <label class="form-label" for="fromDate">من</label>
+            <input type="date" id="fromDate" name="fromDate" value="@Model.FromDate.ToString("yyyy-MM-dd")" class="form-control">
+        </div>
+        <div class="col-md-3 js-range-fields">
+            <label class="form-label" for="toDate">إلى</label>
+            <input type="date" id="toDate" name="toDate" value="@Model.ToDate.ToString("yyyy-MM-dd")" class="form-control">
+        </div>
+        <div class="col-md-2">
+            <button type="submit" class="btn btn-primary w-100 rounded-pill">عرض</button>
         </div>
     </div>
+</form>
 
-    <div class="row">
-        <div class="col-md-6">
-            <div class="card bg-dark border-info p-4 text-center">
-                <h6 class="text-info">إجمالي مبيعات تاريخ (@ViewBag.SelectedDate)</h6>
-                <h2 class="text-white">@ViewBag.DailyTotal.ToString("N2") ج.م</h2>
-            </div>
+<p class="text-secondary mb-3">نتائج <strong>@Model.PeriodLabel</strong></p>
+
+<div class="row g-3 mb-4">
+    <div class="col-md-4 col-xl-2">
+        <div class="stat-card">
+            <div class="stat-label">المبيعات <help-tip>إجمالي فواتير البيع في الفترة قبل خصم المرتجعات.</help-tip></div>
+            <p class="stat-value app-money">@Model.GrossSales.ToString("N2") ج.م</p>
         </div>
-        <div class="col-md-6">
-            <div class="card bg-dark border-warning p-4 text-center">
-                <h6 class="text-warning">إجمالي مبيعات شهر (@ViewBag.SelectedMonth / @ViewBag.SelectedYear)</h6>
-                <h2 class="text-white">@ViewBag.MonthlyTotal.ToString("N2") ج.م</h2>
-            </div>
+    </div>
+    <div class="col-md-4 col-xl-2">
+        <div class="stat-card">
+            <div class="stat-label">المرتجعات <help-tip>قيمة البضاعة التي أُعيدت للعميل خلال الفترة وتُخصم من المبيعات.</help-tip></div>
+            <p class="stat-value app-money">@Model.Returns.ToString("N2") ج.م</p>
+        </div>
+    </div>
+    <div class="col-md-4 col-xl-2">
+        <div class="stat-card">
+            <div class="stat-label">صافي المبيعات <help-tip>المبيعات ناقص المرتجعات. هذا الرقم الذي يُبنى عليه الربح.</help-tip></div>
+            <p class="stat-value app-money">@Model.NetSales.ToString("N2") ج.م</p>
+        </div>
+    </div>
+    <div class="col-md-4 col-xl-2">
+        <div class="stat-card">
+            <div class="stat-label">مجمل الربح <help-tip>صافي المبيعات ناقص تكلفة البضاعة المباعة (سعر الشراء المتوسط للأصناف المباعة).</help-tip></div>
+            <p class="stat-value app-money">@Model.GrossProfit.ToString("N2") ج.م</p>
+        </div>
+    </div>
+    <div class="col-md-4 col-xl-2">
+        <div class="stat-card">
+            <div class="stat-label">المصروفات <help-tip>المصروفات التشغيلية المسجّلة في الفترة (إيجار، كهرباء...). ليست فواتير التوريد.</help-tip></div>
+            <p class="stat-value app-money">@Model.Expenses.ToString("N2") ج.م</p>
+        </div>
+    </div>
+    <div class="col-md-4 col-xl-2">
+        <div class="stat-card">
+            <div class="stat-label">صافي الربح <help-tip>مجمل الربح ناقص المصروفات. هذا صافي ما حققه المحل في الفترة بعد التكاليف والمصاريف.</help-tip></div>
+            <p class="stat-value app-money @profitClass">@Model.NetProfit.ToString("N2") ج.م</p>
         </div>
     </div>
 </div>
+
+<div class="row g-3 mb-4">
+    <div class="col-md-4">
+        <div class="stat-card">
+            <div class="stat-label">عدد الفواتير</div>
+            <p class="stat-value">@Model.InvoiceCount</p>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="stat-card">
+            <div class="stat-label">عدد المرتجعات</div>
+            <p class="stat-value">@Model.ReturnCount</p>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="stat-card">
+            <div class="stat-label">هامش الربح <help-tip>صافي الربح ÷ صافي المبيعات × 100. كلما ارتفعت النسبة كان الربح أفضل مقابل كل جنيه بيع.</help-tip></div>
+            <p class="stat-value">@margin.ToString("N1")%</p>
+        </div>
+    </div>
+</div>
+
+<div class="card table-card border-0 shadow-sm">
+    <div class="card-header">فواتير الفترة</div>
+    <div class="table-responsive">
+        <table class="table table-hover mb-0 align-middle text-center">
+            <thead>
+                <tr>
+                    <th>رقم الفاتورة</th>
+                    <th>التاريخ</th>
+                    <th>الإجمالي</th>
+                    <th class="no-print">تفاصيل</th>
+                </tr>
+            </thead>
+            <tbody>
+                @if (Model.Invoices.Count == 0)
+                {
+                    <tr>
+                        <td colspan="4" class="empty-cell">لا توجد فواتير في الفترة المحددة.</td>
+                    </tr>
+                }
+                @foreach (var invoice in Model.Invoices)
+                {
+                    <tr>
+                        <td class="fw-bold">#@invoice.Id</td>
+                        <td>@invoice.Date.ToString("yyyy/MM/dd HH:mm")</td>
+                        <td class="app-money">@invoice.Total.ToString("N2") ج.م</td>
+                        <td class="no-print">
+                            <a class="btn btn-sm btn-outline-primary rounded-pill" asp-controller="Order" asp-action="OrderDetails" asp-route-id="@invoice.Id">عرض</a>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<script>
+    (function () {
+        var dayRadio = document.getElementById('periodDay');
+        var monthRadio = document.getElementById('periodMonth');
+        var rangeRadio = document.getElementById('periodRange');
+        var dayFields = document.querySelectorAll('.js-day-fields');
+        var monthFields = document.querySelectorAll('.js-month-fields');
+        var rangeFields = document.querySelectorAll('.js-range-fields');
+        function sync() {
+            var month = monthRadio && monthRadio.checked;
+            var range = rangeRadio && rangeRadio.checked;
+            dayFields.forEach(function (el) { el.classList.toggle('d-none', month || range); });
+            monthFields.forEach(function (el) { el.classList.toggle('d-none', !month); });
+            rangeFields.forEach(function (el) { el.classList.toggle('d-none', !range); });
+        }
+        if (dayRadio) dayRadio.addEventListener('change', sync);
+        if (monthRadio) monthRadio.addEventListener('change', sync);
+        if (rangeRadio) rangeRadio.addEventListener('change', sync);
+        sync();
+    })();
+</script>

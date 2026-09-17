@@ -1,11 +1,23 @@
-﻿namespace SmartPOS_ERP.Models
+﻿using System.ComponentModel.DataAnnotations;
+
+namespace SmartPOS_ERP.Models
 {
     public class Expense
     {
         public int Id { get; set; }
-        public string Description { get; set; } // وصف المصروف (مثلاً: إيجار شهر فبراير)
-        public decimal Amount { get; set; }      // المبلغ
-        public DateTime ExpenseDate { get; set; } // تاريخ الصرف
-        public string Category { get; set; }    // الفئة (إيجار، كهرباء، أدوات تشغيل)
+
+        [Required(ErrorMessage = "الوصف مطلوب.")]
+        public string Description { get; set; }
+
+        [Range(typeof(decimal), "0.01", "999999999", ErrorMessage = "المبلغ يجب أن يكون أكبر من صفر.")]
+        public decimal Amount { get; set; }
+
+        public DateTime ExpenseDate { get; set; }
+
+        [Required(ErrorMessage = "نوع المصروف مطلوب.")]
+        public string Category { get; set; }
+        public bool FromCash { get; set; } = true;
+        public int? ShiftId { get; set; }
+        public Shift? Shift { get; set; }
     }
 }

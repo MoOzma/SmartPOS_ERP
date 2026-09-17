@@ -1,4 +1,4 @@
-﻿namespace SmartPOS_ERP.Models
+namespace SmartPOS_ERP.Models
 {
     public class OrderDetail
     {
@@ -10,10 +10,9 @@
         public Product? Product { get; set; }
 
         public decimal Quantity { get; set; }
-        public decimal UnitPrice { get; set; } // السعر وقت البيع
+        public decimal UnitPrice { get; set; }
+        public decimal UnitCost { get; set; }
 
-
-
-        //
+        public decimal TaxRate { get; set; }
     }
 }

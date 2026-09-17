@@ -1,0 +1,56 @@
+@model SmartPOS_ERP.Models.Customer
+@{
+    ViewData["Title"] = $"عميل: {Model.Name}";
+}
+
+<div class="page-head">
+    <div>
+        <h3 class="page-title"><i class="ti ti-user"></i> @Model.Name</h3>
+        <p class="page-sub">@(string.IsNullOrWhiteSpace(Model.Phone) ? "بدون هاتف" : Model.Phone)</p>
+    </div>
+    <div class="page-actions">
+        <a asp-action="Edit" asp-route-id="@Model.Id" class="btn btn-outline-primary rounded-pill">تعديل</a>
+        <a asp-action="Index" class="btn btn-outline-secondary rounded-pill">الدليل</a>
+    </div>
+</div>
+
+@if (!string.IsNullOrWhiteSpace(Model.Notes))
+{
+    <p class="text-secondary">@Model.Notes</p>
+}
+
+<div class="card table-card border-0 shadow-sm">
+    <div class="card-header">فواتير الآجل <help-tip>فواتير بيع سُجّلت على الحساب ولم تُسدَّد بالكامل بعد.</help-tip></div>
+    <div class="table-responsive">
+        <table class="table table-hover mb-0 align-middle">
+            <thead>
+                <tr>
+                    <th>رقم</th>
+                    <th>التاريخ</th>
+                    <th>الإجمالي</th>
+                    <th>المتبقي</th>
+                    <th>الحالة</th>
+                </tr>
+            </thead>
+            <tbody>
+                @if (Model.Invoices == null || Model.Invoices.Count == 0)
+                {
+                    <tr><td colspan="5" class="empty-cell">لا توجد فواتير آجل.</td></tr>
+                }
+                else
+                {
+                    foreach (var invoice in Model.Invoices.OrderByDescending(i => i.CreatedAt))
+                    {
+                        <tr>
+                            <td>#@invoice.Id</td>
+                            <td>@invoice.CreatedAt.ToString("yyyy/MM/dd")</td>
+                            <td class="app-money">@invoice.TotalAmount.ToString("N2") ج.م</td>
+                            <td class="app-money">@invoice.RemainingAmount.ToString("N2") ج.م</td>
+                            <td>@invoice.Status</td>
+                        </tr>
+                    }
+                }
+            </tbody>
+        </table>
+    </div>
+</div>

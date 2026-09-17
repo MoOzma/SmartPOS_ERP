@@ -1,0 +1,12 @@
+<script>
+    (function () {
+        const role = document.getElementById('staffRole');
+        const perms = document.getElementById('cashierPerms');
+        if (!role || !perms) return;
+        function sync() {
+            perms.style.display = role.value === 'Cashier' ? 'block' : 'none';
+        }
+        role.addEventListener('change', sync);
+        sync();
+    })();
+</script>

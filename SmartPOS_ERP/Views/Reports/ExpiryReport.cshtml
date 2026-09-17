@@ -1,0 +1,94 @@
+@model IEnumerable<SmartPOS_ERP.Models.Product>
+@{
+    ViewData["Title"] = "صلاحية الأصناف";
+    var today = DateTime.Today;
+    var items = Model.ToList();
+    var expiredCount = items.Count(p => p.ExpiryDate is DateTime d && d.Date < today);
+    var soonCount = items.Count - expiredCount;
+}
+
+<div class="page-head">
+    <div>
+        <h3 class="page-title"><i class="ti ti-calendar-due"></i> تقرير صلاحية الأصناف <help-tip>الأصناف المنتهية أو التي تنتهي خلال 7 أيام. تاريخ الصلاحية يُضبط من كرت الصنف.</help-tip></h3>
+        <p class="page-sub">منتهية أو قربت تنتهي خلال أسبوع.</p>
+    </div>
+    <div class="page-actions">
+        <a asp-controller="Dashboard" asp-action="Index" class="btn btn-outline-secondary rounded-pill">
+            <i class="ti ti-arrow-right me-1"></i>لوحة التحكم
+        </a>
+        <button type="button" onclick="window.print()" class="btn btn-outline-secondary rounded-pill">
+            <i class="ti ti-printer me-1"></i>طباعة
+        </button>
+    </div>
+</div>
+
+<div class="row g-3 mb-4">
+    <div class="col-md-4">
+        <div class="stat-card">
+            <div class="stat-label">الإجمالي <help-tip>منتهية + قربت تنتهي خلال 7 أيام.</help-tip></div>
+            <p class="stat-value @(items.Count > 0 ? "text-danger" : "")">@items.Count</p>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="stat-card">
+            <div class="stat-label">منتهية</div>
+            <p class="stat-value @(expiredCount > 0 ? "text-danger" : "")">@expiredCount</p>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="stat-card">
+            <div class="stat-label">قربت تنتهي</div>
+            <p class="stat-value @(soonCount > 0 ? "text-warning" : "")">@soonCount</p>
+        </div>
+    </div>
+</div>
+
+<div class="card table-card border-0 shadow-sm">
+    <div class="table-responsive">
+        <table class="table table-hover mb-0 text-center">
+            <thead>
+                <tr>
+                    <th>المنتج</th>
+                    <th>الكمية</th>
+                    <th>تاريخ الصلاحية</th>
+                    <th>الحالة</th>
+                    <th>إجراء</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var item in items)
+                {
+                    var expiry = item.ExpiryDate!.Value;
+                    <tr>
+                        <td class="fw-bold">@item.Name</td>
+                        <td>@item.StockQuantity.ToString("N3") @(item.Unit == "Kilo" ? "كجم" : "قطعة")</td>
+                        <td>@expiry.ToString("yyyy/MM/dd")</td>
+                        <td>
+                            @if (expiry.Date < today)
+                            {
+                                <span class="badge bg-danger">منتهية</span>
+                            }
+                            else if (expiry.Date == today)
+                            {
+                                <span class="badge bg-danger">تنتهي اليوم</span>
+                            }
+                            else
+                            {
+                                <span class="badge bg-warning text-dark">قربت تنتهي</span>
+                            }
+                        </td>
+                        <td>
+                            <a asp-controller="Products" asp-action="Edit" asp-route-id="@item.Id" class="btn btn-sm btn-primary rounded-pill px-3">تعديل</a>
+                        </td>
+                    </tr>
+                }
+                @if (items.Count == 0)
+                {
+                    <tr>
+                        <td colspan="5" class="empty-cell">لا توجد أصناف منتهية أو قريبة من الانتهاء.</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>

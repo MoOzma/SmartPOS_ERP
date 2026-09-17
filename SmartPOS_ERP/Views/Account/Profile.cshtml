@@ -1,35 +1,77 @@
 ﻿@model SmartPOS_ERP.Models.User
+@{
+    var mustChange = Context.Session.GetString("MustChangePassword") == "true";
+    ViewData["Title"] = "الملف الشخصي";
+}
 
-<div class="container mt-5 d-flex justify-content-center">
-    <div class="card bg-dark text-white shadow-lg border-secondary" style="width: 400px; border-radius: 15px;">
-        <div class="card-header text-center border-0 py-4">
-            <div class="rounded-circle bg-info d-inline-block p-3 mb-2">
-                <i class="fas fa-user-edit fa-2x"></i>
+<div class="form-stack">
+    <div class="card border-0 shadow-sm">
+        <div class="card-header bg-transparent border-secondary py-3 text-center">
+            <div class="icon-btn mx-auto mb-2" style="width: 56px; height: 56px;">
+                <i class="ti ti-user-circle" style="font-size: 1.8rem;"></i>
             </div>
-            <h4>ملفي الشخصي</h4>
+            <h4 class="mb-0">ملفي الشخصي</h4>
         </div>
         <div class="card-body p-4">
+            @if (mustChange)
+            {
+                <div class="alert alert-warning">يجب تعيين رقم سري من 4 أرقام قبل استخدام النظام.</div>
+            }
+            @if (ViewBag.Error != null)
+            {
+                <div class="alert alert-danger">@ViewBag.Error</div>
+            }
             @if (ViewBag.Message != null)
             {
                 <div class="alert alert-success">@ViewBag.Message</div>
             }
-            <div class="mb-3">
-                <label class="text-muted small">اسم المستخدم</label>
-                <input type="text" class="form-control bg-secondary text-white border-0" value="@Model.Username" readonly />
-            </div>
-            <div class="mb-3">
-                <label class="text-muted small">الصلاحية</label>
-                <input type="text" class="form-control bg-secondary text-white border-0" value="@Model.Role" readonly />
-            </div>
 
-            <form asp-action="Profile" method="post" class="mt-4 border-top pt-3">
-                <label class="form-label text-info">تغيير كلمة المرور</label>
-                <input type="password" name="newPassword" class="form-control bg-dark text-white border-info mb-3" placeholder="كلمة السر الجديدة" required />
-                <button type="submit" class="btn btn-info w-100 fw-bold">تحديث البيانات</button>
+            <section class="form-section">
+                <h5 class="form-section-title"><i class="ti ti-id"></i> البيانات</h5>
+                <div class="mb-3">
+                    <label class="form-label" for="displayName">الاسم الظاهر</label>
+                    <input id="displayName" type="text" class="form-control" value="@Model.DisplayName" readonly />
+                </div>
+                <div class="mb-3">
+                    <label class="form-label" for="userName">اسم المستخدم</label>
+                    <input id="userName" type="text" class="form-control" value="@Model.Username" readonly />
+                </div>
+                @if (!string.IsNullOrWhiteSpace(Model.Phone))
+                {
+                    <div class="mb-3">
+                        <label class="form-label" for="phone">الهاتف</label>
+                        <input id="phone" type="text" class="form-control" value="@Model.Phone" readonly dir="ltr" />
+                    </div>
+                }
+                <div class="mb-3">
+                    <label class="form-label" for="role">الصلاحية</label>
+                    <input id="role" type="text" class="form-control" value="@(Model.Role == "Admin" ? "مدير" : "كاشير")" readonly />
+                </div>
+            </section>
+
+            <form asp-action="Profile" method="post">
+                <section class="form-section">
+                    <h5 class="form-section-title"><i class="ti ti-lock"></i> تغيير الرقم السري</h5>
+                    <div class="mb-3">
+                        <label class="form-label" for="newPassword">الرقم السري الجديد</label>
+                        <div class="input-group">
+                            <input type="password" id="newPassword" name="newPassword" class="form-control login-pin" placeholder="••••" required minlength="4" maxlength="4" inputmode="numeric" pattern="[0-9]{4}" dir="ltr" autocomplete="new-password" />
+                            <button type="button" class="btn btn-outline-primary" onclick="togglePassword('newPassword')" aria-label="إظهار الرقم السري"><i class="ti ti-eye"></i></button>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label" for="confirmPassword">تأكيد الرقم السري</label>
+                        <input type="password" id="confirmPassword" name="confirmPassword" class="form-control login-pin" placeholder="••••" required minlength="4" maxlength="4" inputmode="numeric" pattern="[0-9]{4}" dir="ltr" autocomplete="new-password" />
+                    </div>
+                </section>
+                <button type="submit" class="btn btn-primary w-100 rounded-pill fw-bold">تحديث البيانات</button>
             </form>
         </div>
-        <div class="card-footer text-center border-0 bg-transparent mb-3">
-            <a asp-controller="Products" asp-action="Index" class="text-decoration-none text-muted">العودة للرئيسية</a>
-        </div>
+        @if (!mustChange)
+        {
+            <div class="card-footer text-center border-0 bg-transparent mb-3">
+                <a asp-controller="Products" asp-action="Index" class="text-decoration-none">العودة للرئيسية</a>
+            </div>
+        }
     </div>
 </div>

@@ -1,0 +1,96 @@
+@model IEnumerable<SmartPOS_ERP.Models.Shift>
+
+@{
+    ViewData["Title"] = "الورديات";
+    var openShift = ViewBag.OpenShift as SmartPOS_ERP.Models.Shift;
+}
+
+<div class="page-head">
+    <div>
+        <h3 class="page-title"><i class="ti ti-clock"></i> الورديات <help-tip>الوردية هي فترة عمل الصندوق. يجب فتح وردية قبل البيع أو التوريد أو المرتجع، ثم إقفالها بعد عدّ الدرج.</help-tip></h3>
+        <p class="page-sub">فتح وإقفال الصندوق ومتابعة فروقات الدرج.</p>
+    </div>
+    <div class="page-actions">
+        @if (openShift == null)
+        {
+            <a asp-action="Open" class="btn btn-primary rounded-pill">
+                <i class="ti ti-player-play me-1"></i>فتح وردية
+            </a>
+        }
+        else
+        {
+            <a asp-action="Details" asp-route-id="@openShift.Id" class="btn btn-outline-primary rounded-pill">
+                الوردية الحالية #@openShift.Id
+            </a>
+            <a asp-action="Close" class="btn btn-warning rounded-pill fw-bold">
+                <i class="ti ti-player-stop me-1"></i>إقفال الوردية
+            </a>
+        }
+    </div>
+</div>
+
+@if (TempData["Message"] != null)
+{
+    <div class="alert alert-success">@TempData["Message"]</div>
+}
+@if (TempData["Error"] != null)
+{
+    <div class="alert alert-danger">@TempData["Error"]</div>
+}
+
+<div class="card table-card border-0 shadow-sm">
+    <div class="table-responsive">
+        <table class="table table-hover mb-0 align-middle">
+            <thead>
+                <tr>
+                    <th>#</th>
+                    <th>المستخدم</th>
+                    <th>الفتح</th>
+                    <th>الإقفال</th>
+                    <th>العهدة <help-tip>المبلغ النقدي الذي بدأ به الكاشير الدرج عند فتح الوردية.</help-tip></th>
+                    <th>المتوقع</th>
+                    <th>الفعلي</th>
+                    <th>الفرق</th>
+                    <th>الحالة</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                @if (!Model.Any())
+                {
+                    <tr>
+                        <td colspan="10" class="empty-cell">لا توجد ورديات بعد. افتح وردية للبدء.</td>
+                    </tr>
+                }
+                @foreach (var item in Model)
+                {
+                    <tr>
+                        <td>@item.Id</td>
+                        <td>@item.User.Username</td>
+                        <td>@item.OpenedAt.ToString("yyyy-MM-dd HH:mm")</td>
+                        <td>@(item.ClosedAt?.ToString("yyyy-MM-dd HH:mm") ?? "—")</td>
+                        <td>@item.OpeningCash.ToString("N2")</td>
+                        <td>@(item.ExpectedCash?.ToString("N2") ?? "—")</td>
+                        <td>@(item.ClosingCash?.ToString("N2") ?? "—")</td>
+                        <td class="@(item.Difference < 0 ? "text-danger" : item.Difference > 0 ? "text-success" : "")">
+                            @(item.Difference?.ToString("N2") ?? "—")
+                        </td>
+                        <td>
+                            @if (item.IsOpen)
+                            {
+                                <span class="badge bg-success">مفتوحة</span>
+                            }
+                            else
+                            {
+                                <span class="badge bg-secondary">مقفلة</span>
+                            }
+                        </td>
+                        <td>
+                            <a asp-action="Details" asp-route-id="@item.Id" class="btn btn-sm btn-outline-primary">التفاصيل</a>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>

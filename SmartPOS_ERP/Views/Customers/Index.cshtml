@@ -1,0 +1,70 @@
+@model IEnumerable<SmartPOS_ERP.Models.Customer>
+@{
+    ViewData["Title"] = "دليل العملاء";
+}
+
+<div class="page-head">
+    <div>
+        <h3 class="page-title"><i class="ti ti-users"></i> دليل العملاء <help-tip>عملاء البيع الآجل. المتبقي هو ما لم يُحصَّل بعد من فواتيرهم.</help-tip></h3>
+        <p class="page-sub">عملاء المحل وفواتير الآجل المرتبطة بهم.</p>
+    </div>
+    <div class="page-actions">
+        <a asp-action="Create" class="btn btn-primary rounded-pill">
+            <i class="ti ti-plus me-1"></i>إضافة عميل
+        </a>
+    </div>
+</div>
+
+<form method="get" class="form-section no-print mb-4">
+    <div class="row g-3 align-items-end">
+        <div class="col-md-8">
+            <label class="form-label" for="q">بحث</label>
+            <input type="search" id="q" name="q" value="@ViewBag.Query" class="form-control" placeholder="الاسم أو الهاتف" />
+        </div>
+        <div class="col-md-2">
+            <button type="submit" class="btn btn-primary w-100 rounded-pill">عرض</button>
+        </div>
+    </div>
+</form>
+
+<div class="card table-card border-0 shadow-sm">
+    <div class="table-responsive">
+        <table class="table table-hover mb-0 align-middle">
+            <thead>
+                <tr>
+                    <th>العميل</th>
+                    <th>الهاتف</th>
+                    <th>فواتير الآجل</th>
+                    <th>المتبقي <help-tip>المبلغ الذي لم يسدده العميل بعد على فواتير الآجل المفتوحة.</help-tip></th>
+                    <th class="text-center">إجراءات</th>
+                </tr>
+            </thead>
+            <tbody>
+                @if (!Model.Any())
+                {
+                    <tr><td colspan="5" class="empty-cell">لا يوجد عملاء.</td></tr>
+                }
+                @foreach (var customer in Model)
+                {
+                    var remaining = customer.Invoices?.Where(i => i.Status == CreditInvoiceStatuses.Open).Sum(i => i.RemainingAmount) ?? 0;
+                    <tr>
+                        <td>
+                            <div class="fw-bold">@customer.Name</div>
+                            @if (!string.IsNullOrWhiteSpace(customer.Notes))
+                            {
+                                <div class="small text-secondary">@customer.Notes</div>
+                            }
+                        </td>
+                        <td>@(string.IsNullOrWhiteSpace(customer.Phone) ? "—" : customer.Phone)</td>
+                        <td>@(customer.Invoices?.Count ?? 0)</td>
+                        <td class="app-money @(remaining > 0 ? "text-warning" : "")">@remaining.ToString("N2") ج.م</td>
+                        <td class="text-center">
+                            <a asp-action="Details" asp-route-id="@customer.Id" class="btn btn-sm btn-outline-primary rounded-pill">عرض</a>
+                            <a asp-action="Edit" asp-route-id="@customer.Id" class="btn btn-sm btn-outline-secondary rounded-pill">تعديل</a>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>

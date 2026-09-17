@@ -1,0 +1,78 @@
+@model SmartPOS_ERP.Models.StaffFormViewModel
+@{
+    var isCashier = string.Equals(Model.Role, "Cashier", StringComparison.OrdinalIgnoreCase);
+}
+
+<div asp-validation-summary="All" class="alert alert-danger mb-3"></div>
+<input type="hidden" asp-for="Id" />
+<input type="hidden" asp-for="IsEdit" />
+
+<section class="form-section">
+    <h5 class="form-section-title"><i class="ti ti-id"></i> بيانات الموظف</h5>
+    <div class="row">
+        <div class="col-md-6 mb-3">
+            <label class="form-label" asp-for="DisplayName">الاسم الظاهر</label>
+            <input asp-for="DisplayName" class="form-control" required maxlength="80" />
+            <span asp-validation-for="DisplayName" class="text-danger small"></span>
+        </div>
+        <div class="col-md-6 mb-3">
+            <label class="form-label" asp-for="Username">اسم المستخدم <help-tip>الاسم المستخدم عند تسجيل الدخول. يمكن اختياره من القائمة أو كتابته. لا يُغيَّر بعد الحفظ.</help-tip></label>
+            @if (Model.IsEdit)
+            {
+                <input asp-for="Username" class="form-control" readonly />
+                <span class="form-hint">اسم الدخول لا يُغيَّر بعد الإنشاء.</span>
+            }
+            else
+            {
+                <input asp-for="Username" class="form-control" maxlength="64" required />
+            }
+            <span asp-validation-for="Username" class="text-danger small"></span>
+        </div>
+        <div class="col-md-6 mb-3">
+            <label class="form-label" asp-for="Phone">الهاتف</label>
+            <input asp-for="Phone" class="form-control" maxlength="30" dir="ltr" />
+        </div>
+        <div class="col-md-6 mb-3">
+            <label class="form-label" asp-for="Password">الرقم السري</label>
+            @if (Model.IsEdit)
+            {
+                <input asp-for="Password" type="password" class="form-control login-pin" maxlength="4" inputmode="numeric" autocomplete="new-password" dir="ltr" />
+            }
+            else
+            {
+                <input asp-for="Password" type="password" class="form-control login-pin" minlength="4" maxlength="4" inputmode="numeric" pattern="[0-9]{4}" autocomplete="new-password" required dir="ltr" />
+            }
+            <span asp-validation-for="Password" class="text-danger small"></span>
+            @if (Model.IsEdit)
+            {
+                <span class="form-hint">اتركه فارغًا للإبقاء على الحالي.</span>
+            }
+        </div>
+        <div class="col-md-6 mb-3">
+            <label class="form-label" asp-for="Role">الدور</label>
+            <select asp-for="Role" class="form-select" id="staffRole">
+                <option value="Admin">مدير</option>
+                <option value="Cashier">كاشير</option>
+            </select>
+        </div>
+        <div class="col-md-6 mb-3 d-flex align-items-end">
+            <div class="form-check form-switch mb-3">
+                <input class="form-check-input" type="checkbox" asp-for="IsActive" />
+                <label class="form-check-label" asp-for="IsActive">الحساب مفعّل</label>
+            </div>
+        </div>
+    </div>
+</section>
+
+<section class="form-section" id="cashierPerms" style="display:@(isCashier ? "block" : "none")">
+    <h5 class="form-section-title"><i class="ti ti-shield-check"></i> صلاحيات الكاشير <help-tip>المدير لا يحتاج شيكات. الكاشير بدون شيكات يعمل البيع والوردية فقط. فعّل ما يحتاجه من الشاشات الأخرى.</help-tip></h5>
+    <p class="form-hint mb-3">المدير يشوف كل الشاشات تلقائيًا. الكاشير من غير شيكات: بيع ووردية فقط.</p>
+    <div class="row">
+        <div class="col-md-6 mb-2"><div class="form-check"><input class="form-check-input" asp-for="CanProcessReturn" /><label class="form-check-label" asp-for="CanProcessReturn">مرتجع بيع</label></div></div>
+        <div class="col-md-6 mb-2"><div class="form-check"><input class="form-check-input" asp-for="CanManageProducts" /><label class="form-check-label" asp-for="CanManageProducts">إضافة وتعديل الأصناف</label></div></div>
+        <div class="col-md-6 mb-2"><div class="form-check"><input class="form-check-input" asp-for="CanViewAllOrders" /><label class="form-check-label" asp-for="CanViewAllOrders">كل الفواتير</label></div></div>
+        <div class="col-md-6 mb-2"><div class="form-check"><input class="form-check-input" asp-for="CanManageExpenses" /><label class="form-check-label" asp-for="CanManageExpenses">المصروفات</label></div></div>
+        <div class="col-md-6 mb-2"><div class="form-check"><input class="form-check-input" asp-for="CanManagePurchases" /><label class="form-check-label" asp-for="CanManagePurchases">التوريد</label></div></div>
+        <div class="col-md-6 mb-2"><div class="form-check"><input class="form-check-input" asp-for="CanViewDashboard" /><label class="form-check-label" asp-for="CanViewDashboard">لوحة التحكم</label></div></div>
+    </div>
+</section>

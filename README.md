@@ -70,9 +70,14 @@ A robust and scalable Point of Sale (POS) and Enterprise Resource Planning (ERP)
 ## 📝 How to Run
 
 1.  Clone the repository.
-2.  Update the connection string in `appsettings.json`.
+2.  Set the SQL Server connection string in **User Secrets** (do not put it in `appsettings.json`):
+
+    ```
+    dotnet user-secrets set "ConnectionStrings:DefaultConnection" "Server=YOUR_SERVER\\SQLEXPRESS;Database=SmartPOS_ERP_DB;Trusted_Connection=True;TrustServerCertificate=True;" --project SmartPOS_ERP/SmartPOS_ERP.csproj
+    ```
+
 3.  Run `Update-Database` in the Package Manager Console.
-4.  The default login is `admin` / `123`.
+4.  If the `Users` table is empty, the app creates `admin` with a bootstrap password. The first login **must** change that password before any other screen can be used.
 
 ---
 Developed as part of a deep-dive into C# and ASP.NET Core concepts.

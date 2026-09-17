@@ -1,43 +1,100 @@
-﻿<div class="container-fluid bg-dark text-white p-4" style="min-height: 100vh;">
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <h3 class="text-info fw-bold"><i class="fas fa-history me-2"></i> سجل الفواتير والمبيعات</h3>
-        <span class="badge bg-info p-2">إجمالي العمليات: @Model.Count</span>
-    </div>
+@model IEnumerable<SmartPOS_ERP.Models.Order>
+@{
+    ViewData["Title"] = "الفواتير";
+    int page = ViewBag.Page ?? 1;
+    int totalPages = ViewBag.TotalPages ?? 1;
+    int totalCount = ViewBag.TotalCount ?? Model.Count();
+}
 
-    <div class="card shadow bg-secondary bg-opacity-10 border-secondary">
-        <div class="card-body p-0">
-            <table class="table table-dark table-hover mb-0 text-center align-middle">
-                <thead class="table-dark border-secondary">
-                    <tr>
-                        <th>رقم الفاتورة</th>
-                        <th>تاريخ ووقت العملية</th>
-                        <th>عدد الأصناف</th>
-                        <th>الإجمالي النهائي</th>
-                        <th>الإجراءات</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @foreach (var order in Model)
-                    {
-                        <tr>
-                            <td class="fw-bold text-info">#@order.Id</td>
-                            <td>
-                                <div class="small">@order.OrderDate.ToString("yyyy/MM/dd")</div>
-                                <div class="badge bg-dark text-white">@order.OrderDate.ToString("hh:mm tt")</div>
-                            </td>
-                            <td><span class="badge rounded-pill bg-outline-light border px-3">@order.OrderDetails.Count</span></td>
-                            <td class="fw-bold text-warning fs-5">@order.TotalAmount.ToString("N2") ج.م</td>
-                            <td>
-                                <a asp-action="OrderDetails"
-                                   asp-controller="Order"
-                                   asp-route-id="@order.Id"
-                                   class="btn btn-info">عرض</a>
-                                
-                            </td>
-                        </tr>
-                    }
-                </tbody>
-            </table>
-        </div>
+<div class="page-head">
+    <div>
+        <h3 class="page-title"><i class="ti ti-file-invoice"></i> سجل الفواتير <help-tip>كل فواتير البيع المسجّلة. ابحث برقم الفاتورة أو بالتاريخ لفتح التفاصيل أو عمل مرتجع.</help-tip></h3>
+        <p class="page-sub">إجمالي العمليات: @totalCount</p>
     </div>
 </div>
+
+<form method="get" asp-action="Index" class="form-section">
+    <h5 class="form-section-title"><i class="ti ti-filter"></i> بحث</h5>
+    <div class="row g-2 align-items-end">
+        <div class="col-md-3">
+            <label class="form-label" for="invoiceId">رقم الفاتورة</label>
+            <input type="number" name="invoiceId" id="invoiceId" value="@ViewBag.InvoiceId" class="form-control" placeholder="مثلاً 120" />
+        </div>
+        <div class="col-md-3">
+            <label class="form-label" for="from">من تاريخ</label>
+            <input type="date" name="from" id="from" value="@ViewBag.From" class="form-control" />
+        </div>
+        <div class="col-md-3">
+            <label class="form-label" for="to">إلى تاريخ</label>
+            <input type="date" name="to" id="to" value="@ViewBag.To" class="form-control" />
+        </div>
+        <div class="col-md-3 d-flex gap-2">
+            <button type="submit" class="btn btn-primary flex-grow-1 rounded-pill">بحث</button>
+            <a asp-action="Index" class="btn btn-outline-secondary rounded-pill">مسح</a>
+        </div>
+    </div>
+</form>
+
+<div class="card table-card border-0 shadow-sm">
+    <div class="table-responsive">
+        <table class="table table-hover mb-0 text-center align-middle">
+            <thead>
+                <tr>
+                    <th>رقم الفاتورة</th>
+                    <th>تاريخ ووقت العملية</th>
+                    <th>عدد البنود</th>
+                    <th>الإجمالي النهائي</th>
+                    <th>الدفع</th>
+                    <th>الإجراءات</th>
+                </tr>
+            </thead>
+            <tbody>
+                @if (!Model.Any())
+                {
+                    <tr>
+                        <td colspan="6" class="empty-cell">لا توجد فواتير مطابقة للبحث.</td>
+                    </tr>
+                }
+                @foreach (var order in Model)
+                {
+                    <tr>
+                        <td class="fw-bold text-info">#@order.Id</td>
+                        <td>
+                            <div class="small">@order.OrderDate.ToString("yyyy/MM/dd")</div>
+                            <div class="badge bg-secondary">@order.OrderDate.ToString("hh:mm tt")</div>
+                        </td>
+                        <td><span class="badge rounded-pill border px-3">@order.OrderDetails.Count</span></td>
+                        <td class="fw-bold app-money">@order.TotalAmount.ToString("N2") ج.م</td>
+                        <td>@PaymentMethods.Label(order.PaymentMethod)</td>
+                        <td>
+                            <a asp-action="OrderDetails" asp-controller="Order" asp-route-id="@order.Id" class="btn btn-sm btn-primary rounded-pill">عرض</a>
+                            @if ((ViewData["StoreSettings"] as StoreSettings)?.PrintReceiptAfterSale == true)
+                            {
+                                <a asp-action="Receipt" asp-route-id="@order.Id" target="_blank" class="btn btn-sm btn-outline-secondary rounded-pill">إيصال</a>
+                            }
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>
+
+@if (totalPages > 1)
+{
+    <nav class="mt-3" aria-label="صفحات الفواتير">
+        <ul class="pagination justify-content-center">
+            @for (int i = 1; i <= totalPages; i++)
+            {
+                <li class="page-item @(i == page ? "active" : "")">
+                    <a class="page-link"
+                       asp-action="Index"
+                       asp-route-page="@i"
+                       asp-route-invoiceId="@ViewBag.InvoiceId"
+                       asp-route-from="@ViewBag.From"
+                       asp-route-to="@ViewBag.To">@i</a>
+                </li>
+            }
+        </ul>
+    </nav>
+}

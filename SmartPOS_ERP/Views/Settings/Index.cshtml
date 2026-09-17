@@ -1,0 +1,246 @@
+@model SettingsPageViewModel
+@{
+    ViewData["Title"] = "إعدادات النظام";
+    var pinLocked = !Model.HasResetPin;
+}
+
+<div class="form-stack">
+    <div class="card border-0 shadow-sm">
+        <div class="card-header bg-transparent border-secondary py-3">
+            <h4 class="text-info mb-1"><i class="ti ti-settings me-2"></i>إعدادات النظام <help-tip>بيانات المحل، طرق الدفع، الضريبة، النسخ الاحتياطي، وتصفير النظام. العملة ثابتة: ج.م</help-tip></h4>
+            <p class="text-secondary small mb-0">هوية المحل، طرق الدفع، وطباعة الإيصال. العملة ثابتة: ج.م</p>
+        </div>
+        <div class="card-body p-4">
+            @if (TempData["Message"] != null)
+            {
+                <div class="alert alert-success">@TempData["Message"]</div>
+            }
+            @if (TempData["Error"] != null)
+            {
+                <div class="alert alert-danger">@TempData["Error"]</div>
+            }
+            <form asp-action="Index" method="post" enctype="multipart/form-data">
+                @if (!ViewData.ModelState.IsValid)
+                {
+                    <div asp-validation-summary="All" class="alert alert-danger mb-3"></div>
+                }
+                <input type="hidden" asp-for="Store.Id" />
+
+                <section class="form-section">
+                    <h5 class="form-section-title"><i class="ti ti-building-store"></i> المحل والفاتورة</h5>
+                    <div class="mb-3">
+                        <label class="form-label" asp-for="Store.StoreName">اسم المحل</label>
+                        <input asp-for="Store.StoreName" class="form-control" maxlength="80" required />
+                        <span asp-validation-for="Store.StoreName" class="text-danger small"></span>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label" asp-for="Store.Phone">الهاتف</label>
+                            <input asp-for="Store.Phone" class="form-control" maxlength="30" dir="ltr" />
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label" asp-for="Store.Address">العنوان</label>
+                            <input asp-for="Store.Address" class="form-control" maxlength="200" />
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label" for="logoFile">شعار المحل</label>
+                        @if (!string.IsNullOrWhiteSpace(Model.Store.LogoPath))
+                        {
+                            <div class="d-flex align-items-center gap-3 mb-2">
+                                <img src="@Model.Store.LogoPath" alt="شعار المحل" class="store-logo-preview" />
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" name="removeLogo" value="true" id="removeLogo" />
+                                    <label class="form-check-label" for="removeLogo">حذف الشعار الحالي</label>
+                                </div>
+                            </div>
+                        }
+                        <input type="file" id="logoFile" name="logoFile" class="form-control" accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp" />
+                        <span class="form-hint">jpg أو png أو webp — حتى 2 ميجابايت.</span>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label" asp-for="Store.InvoiceFooter">تذييل الفاتورة <help-tip>جملة تظهر أسفل إيصال البيع عند الطباعة، مثل سياسة الاستبدال أو شكراً لزيارتكم.</help-tip></label>
+                        <textarea asp-for="Store.InvoiceFooter" class="form-control" rows="2" maxlength="300"></textarea>
+                        <span class="form-hint">يظهر أسفل فاتورة البيع عند الطباعة.</span>
+                    </div>
+                    <div class="form-switch-row mb-0">
+                        <div class="form-check form-switch m-0">
+                            <input class="form-check-input" type="checkbox" asp-for="Store.PrintReceiptAfterSale" id="printReceipt" />
+                            <label class="form-check-label" for="printReceipt">طباعة الإيصال تلقائياً بعد البيع <help-tip>عند التفعيل تُفتح صفحة الإيصال بعد كل فاتورة. أطفئه إذا لا توجد طابعة.</help-tip></label>
+                        </div>
+                        <span class="form-hint">اطفئه إذا لم تتوفر طابعة. يمكن تفعيله لاحقاً من هنا.</span>
+                    </div>
+                </section>
+
+                <section class="form-section">
+                    <h5 class="form-section-title"><i class="ti ti-cash"></i> طرق الدفع في شاشة البيع <help-tip>ما تفعّله هنا يظهر للكاشير عند الدفع. يجب اختيار طريقة واحدة على الأقل. النقدي هو الافتراضي إن أُغلقت الكل.</help-tip></h5>
+                    <p class="form-hint mb-3">يظهر للكاشير فقط ما تفعّله هنا. يجب اختيار طريقة واحدة على الأقل.</p>
+                    <div class="row">
+                        <div class="col-md-4 mb-2">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" asp-for="Store.EnablePaymentCash" id="payCashEnabled" />
+                                <label class="form-check-label" for="payCashEnabled">نقدي</label>
+                            </div>
+                        </div>
+                        <div class="col-md-4 mb-2">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" asp-for="Store.EnablePaymentCard" id="payCardEnabled" />
+                                <label class="form-check-label" for="payCardEnabled">بطاقة</label>
+                            </div>
+                        </div>
+                        <div class="col-md-4 mb-2">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" asp-for="Store.EnablePaymentTransfer" id="payTransferEnabled" />
+                                <label class="form-check-label" for="payTransferEnabled">تحويل</label>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <section class="form-section">
+                    <h5 class="form-section-title"><i class="ti ti-percentage"></i> الضريبة</h5>
+                    <div class="form-switch-row mb-3">
+                        <div class="form-check form-switch m-0">
+                            <input class="form-check-input" type="checkbox" asp-for="Store.TaxEnabled" id="taxEnabled" />
+                            <label class="form-check-label" for="taxEnabled">تفعيل حساب الضريبة على المبيعات الجديدة <help-tip>يضيف نسبة على فواتير البيع الجديدة. الفواتير القديمة لا تتغير. الأصناف ذات نسبة مخصصة تستخدم نسبتها.</help-tip></label>
+                        </div>
+                    </div>
+                    <div id="defaultTaxWrap" class="mb-3">
+                        <label class="form-label" asp-for="Store.DefaultTaxRate">النسبة العامة % <help-tip>تُطبَّق على الأصناف بدون نسبة مخصصة. 0 تعني لا ضريبة لتلك الأصناف.</help-tip></label>
+                        <input asp-for="Store.DefaultTaxRate" type="number" step="0.01" min="0" max="100" class="form-control" style="max-width: 200px;" />
+                        <span asp-validation-for="Store.DefaultTaxRate" class="text-danger small"></span>
+                        <span class="form-hint">تُستخدم للأصناف بدون تخصيص. الأصناف ذات النسبة المخصصة لا تتأثر.</span>
+                    </div>
+                </section>
+
+                <div class="d-flex flex-wrap gap-2 mt-2">
+                    <button type="submit" class="btn btn-primary rounded-pill px-4 fw-bold">
+                        <i class="ti ti-device-floppy me-1"></i>حفظ الإعدادات
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div class="card border-0 shadow-sm">
+        <div class="card-body p-4">
+            <section class="form-section mb-0">
+                <h5 class="form-section-title"><i class="ti ti-database"></i> النسخ الاحتياطي <help-tip>التصدير يحفظ كل البيانات في ملف zip. الاستيراد يستبدل البيانات الحالية بالكامل بعد إدخال الرقم السري.</help-tip></h5>
+                <p class="form-hint mb-3">صدّر نسخة كاملة من البيانات، أو استورد نسخة سابقة. الاستيراد يستبدل البيانات الحالية.</p>
+                <a asp-action="ExportBackup" class="btn btn-outline-primary rounded-pill mb-4">
+                    <i class="ti ti-download me-1"></i>تصدير نسخة احتياطية
+                </a>
+                <form asp-action="ImportBackup" method="post" enctype="multipart/form-data">
+                    <div class="mb-3">
+                        <label class="form-label" for="backupFile">ملف النسخة (.zip)</label>
+                        <input type="file" id="backupFile" name="backupFile" class="form-control" accept=".zip,application/zip" @(pinLocked ? "disabled" : null) />
+                    </div>
+                    <div class="mb-3" style="max-width: 220px;">
+                        <label class="form-label" for="importPin">الرقم السري</label>
+                        <input id="importPin" name="pin" class="form-control" maxlength="4" inputmode="numeric" autocomplete="off" dir="ltr" @(pinLocked ? "disabled" : null) />
+                    </div>
+                    <div class="form-check mb-3">
+                        <input class="form-check-input" type="checkbox" name="confirm" value="true" id="importConfirm" @(pinLocked ? "disabled" : null) />
+                        <label class="form-check-label" for="importConfirm">أفهم أن الاستيراد سيستبدل كل البيانات الحالية</label>
+                    </div>
+                    <button type="submit" class="btn btn-primary rounded-pill" @(pinLocked ? "disabled" : null)>
+                        <i class="ti ti-upload me-1"></i>استيراد النسخة
+                    </button>
+                    @if (pinLocked)
+                    {
+                        <span class="form-hint mt-2">اضبط الرقم السري أولاً لتفعيل الاستيراد.</span>
+                    }
+                </form>
+            </section>
+        </div>
+    </div>
+
+    <div class="card border-0 shadow-sm">
+        <div class="card-body p-4">
+            <section class="form-section mb-0">
+                <h5 class="form-section-title"><i class="ti ti-lock"></i> الرقم السري (4 أرقام) <help-tip>يحمي الاستيراد وتصفير النظام. غير رقم الدخول. لا يظهر بعد الحفظ.</help-tip></h5>
+                @if (Model.HasResetPin)
+                {
+                    <p class="form-hint mb-3">الرقم مضبوط. أدخله لتغييره. لا يظهر بعد الحفظ.</p>
+                    <form asp-action="SetResetPin" method="post">
+                        <div class="row">
+                            <div class="col-md-4 mb-3">
+                                <label class="form-label" for="currentPin">الرقم الحالي</label>
+                                <input id="currentPin" name="currentPin" class="form-control" maxlength="4" inputmode="numeric" autocomplete="off" dir="ltr" required />
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <label class="form-label" for="newPin">الرقم الجديد</label>
+                                <input id="newPin" name="newPin" class="form-control" maxlength="4" inputmode="numeric" autocomplete="off" dir="ltr" required />
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <label class="form-label" for="confirmPin">تأكيد الرقم</label>
+                                <input id="confirmPin" name="confirmPin" class="form-control" maxlength="4" inputmode="numeric" autocomplete="off" dir="ltr" required />
+                            </div>
+                        </div>
+                        <button type="submit" class="btn btn-outline-primary rounded-pill">تغيير الرقم السري</button>
+                    </form>
+                }
+                else
+                {
+                    <p class="form-hint mb-3">مطلوب قبل الاستيراد أو تصفير النظام. 4 أرقام فقط.</p>
+                    <form asp-action="SetResetPin" method="post">
+                        <div class="row">
+                            <div class="col-md-4 mb-3">
+                                <label class="form-label" for="newPinFirst">الرقم السري</label>
+                                <input id="newPinFirst" name="newPin" class="form-control" maxlength="4" inputmode="numeric" autocomplete="off" dir="ltr" required />
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <label class="form-label" for="confirmPinFirst">تأكيد الرقم</label>
+                                <input id="confirmPinFirst" name="confirmPin" class="form-control" maxlength="4" inputmode="numeric" autocomplete="off" dir="ltr" required />
+                            </div>
+                        </div>
+                        <button type="submit" class="btn btn-primary rounded-pill">حفظ الرقم السري</button>
+                    </form>
+                }
+            </section>
+        </div>
+    </div>
+
+    <div class="card border-0 shadow-sm settings-danger-card">
+        <div class="card-body p-4">
+            <section class="form-section form-section-danger mb-0">
+                <h5 class="form-section-title text-danger"><i class="ti ti-alert-triangle"></i> تصفير النظام <help-tip>يحذف الأصناف والفواتير والتوريد والمصروفات والموظفين والإعدادات. يبقى حسابك الحالي فقط. لا يمكن التراجع.</help-tip></h5>
+                <p class="mb-3">سيُحذف كل شيء: الأصناف، الفواتير، التوريد، المصروفات، الموظفين، وإعدادات المحل. يبقى حسابك فقط، وتُعاد الإعدادات للوضع الافتراضي. لا يمكن التراجع.</p>
+                <form asp-action="FactoryReset" method="post">
+                    <div class="mb-3" style="max-width: 220px;">
+                        <label class="form-label" for="resetPin">الرقم السري</label>
+                        <input id="resetPin" name="pin" class="form-control" maxlength="4" inputmode="numeric" autocomplete="off" dir="ltr" @(pinLocked ? "disabled" : null) />
+                    </div>
+                    <div class="form-check mb-3">
+                        <input class="form-check-input" type="checkbox" name="confirm" value="true" id="resetConfirm" @(pinLocked ? "disabled" : null) />
+                        <label class="form-check-label" for="resetConfirm">أفهم أن التصفير لا يمكن التراجع عنه</label>
+                    </div>
+                    <button type="submit" class="btn btn-danger rounded-pill" @(pinLocked ? "disabled" : null)>
+                        <i class="ti ti-trash me-1"></i>تصفير النظام
+                    </button>
+                    @if (pinLocked)
+                    {
+                        <span class="form-hint mt-2">اضبط الرقم السري أولاً لتفعيل التصفير.</span>
+                    }
+                </form>
+            </section>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    @{
+        await Html.RenderPartialAsync("_ValidationScriptsPartial");
+    }
+    <script>
+        (function () {
+            const enabled = document.getElementById('taxEnabled');
+            const wrap = document.getElementById('defaultTaxWrap');
+            function sync() {
+                wrap.style.display = enabled.checked ? '' : 'none';
+            }
+            enabled.addEventListener('change', sync);
+            sync();
+        })();
+    </script>
+}

@@ -1,53 +1,88 @@
-﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using SmartPOS_ERP.Data;
 using SmartPOS_ERP.Models;
+using SmartPOS_ERP.Security;
 
 namespace SmartPOS_ERP.Controllers
 {
+    [Authorize]
     public class AccountController : Controller
     {
-        // دالة عرض صفحة الدخول (GET)
-
         private readonly ApplicationDbContext _context;
+        private readonly ILogger<AccountController> _logger;
 
-        public AccountController(ApplicationDbContext context)
+        public AccountController(ApplicationDbContext context, ILogger<AccountController> logger)
         {
             _context = context;
+            _logger = logger;
         }
-        public IActionResult Login() => View();
 
-        // دالة معالجة بيانات الدخول (POST)
+        [AllowAnonymous]
+        public IActionResult Login()
+        {
+            LoadLoginUsers();
+            return View();
+        }
+
         [HttpPost]
+        [AllowAnonymous]
+        [ValidateAntiForgeryToken]
         public IActionResult Login(string username, string password)
         {
-            // 1. نبحث عن المستخدم بالاسم فقط أولاً
-            var user = _context.Users.FirstOrDefault(u => u.Username == username);
-
-            // 2. إذا وجدناه، نتحقق من أن كلمة السر المدخلة تطابق التشفير الموجود في القاعدة
-            if (user != null && BCrypt.Net.BCrypt.Verify(password, user.Password))
+            var user = _context.Users.FirstOrDefault(u =>
+                u.Username.ToLower() == (username ?? string.Empty).Trim().ToLower());
+            var failure = StaffAuth.LoginFailure(user, password);
+            if (failure == null && user != null)
             {
-                HttpContext.Session.SetString("UserName", user.Username);
-                HttpContext.Session.SetString("UserRole", user.Role);
+                StaffAuth.ApplySession(HttpContext.Session, user);
+
+                if (!PasswordRules.TryValidate(password, out _))
+                {
+                    HttpContext.Session.SetString("MustChangePassword", "true");
+                    return RedirectToAction(nameof(Profile));
+                }
+
+                _logger.LogInformation("User {Username} signed in", user.Username);
+                if (string.Equals(user.Role, "Admin", StringComparison.OrdinalIgnoreCase) || user.CanViewDashboard)
+                    return RedirectToAction("Index", "Dashboard");
                 return RedirectToAction("Index", "Products");
             }
 
-            ViewBag.Error = "بيانات الدخول غير صحيحة";
+            _logger.LogWarning("Failed login attempt for username {Username}", username);
+            ViewBag.Error = failure ?? StaffAuth.WrongCredentials;
+            ViewBag.Username = username;
+            LoadLoginUsers();
             return View();
+        }
+
+        private void LoadLoginUsers()
+        {
+            ViewBag.LoginUsers = OwnerAccount.Visible(_context.Users)
+                .AsNoTracking()
+                .Where(u => u.IsActive)
+                .OrderBy(u => u.DisplayName)
+                .ThenBy(u => u.Username)
+                .Select(u => new LoginUserOption
+                {
+                    Username = u.Username,
+                    DisplayName = u.DisplayName
+                })
+                .ToList();
         }
 
         public IActionResult Logout()
         {
-            HttpContext.Session.Clear(); // تدمير "بطاقة التعريف" عند تسجيل الخروج
+            var userName = User.Identity?.Name;
+            HttpContext.Session.Clear();
+            _logger.LogInformation("User {Username} signed out", userName);
             return RedirectToAction("Login");
-     
         }
 
-        // GET: Account/Profile
         public async Task<IActionResult> Profile()
         {
-            // الحصول على اسم المستخدم الحالي من السيشين
-            var currentUserName = HttpContext.Session.GetString("UserName");
+            var currentUserName = User.Identity?.Name;
             if (string.IsNullOrEmpty(currentUserName)) return RedirectToAction("Login");
 
             var user = await _context.Users.FirstOrDefaultAsync(u => u.Username == currentUserName);
@@ -56,29 +91,35 @@ namespace SmartPOS_ERP.Controllers
             return View(user);
         }
 
-        // POST: Account/Profile
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Profile(string newPassword)
+        public async Task<IActionResult> Profile(string newPassword, string confirmPassword)
         {
-            var currentUserName = HttpContext.Session.GetString("UserName");
+            var currentUserName = User.Identity?.Name;
             var user = await _context.Users.FirstOrDefaultAsync(u => u.Username == currentUserName);
 
             if (user != null && !string.IsNullOrEmpty(newPassword))
             {
-                // تشفير كلمة السر الجديدة قبل الحفظ
+                if (newPassword != confirmPassword)
+                {
+                    ViewBag.Error = "الرقم السري وتأكيده غير متطابقين.";
+                    return View(user);
+                }
+
+                if (!PasswordRules.TryValidate(newPassword, out var error))
+                {
+                    ViewBag.Error = error;
+                    return View(user);
+                }
+
                 user.Password = BCrypt.Net.BCrypt.HashPassword(newPassword);
                 _context.Update(user);
                 await _context.SaveChangesAsync();
-                ViewBag.Message = "تم تحديث كلمة المرور بنجاح";
+                HttpContext.Session.Remove("MustChangePassword");
+                _logger.LogInformation("Password updated for user {Username}", currentUserName);
+                ViewBag.Message = "تم تحديث الرقم السري بنجاح";
             }
             return View(user);
         }
-
-
-
     }
-
-
-
 }

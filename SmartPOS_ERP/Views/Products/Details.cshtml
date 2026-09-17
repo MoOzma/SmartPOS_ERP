@@ -1,66 +1,101 @@
-﻿@model SmartPOS_ERP.Models.Product
+@model SmartPOS_ERP.Models.Product
 
 @{
-    ViewData["Title"] = "Details";
+    ViewData["Title"] = "تفاصيل المنتج";
 }
 
-<h1>Details</h1>
-
-<div>
-    <h4>Product</h4>
-    <hr />
-    <dl class="row">
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.Name)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.Name)
-        </dd>
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.Barcode)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.Barcode)
-        </dd>
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.CostPrice)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.CostPrice)
-        </dd>
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.SalePrice)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.SalePrice)
-        </dd>
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.TrackInventory)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.TrackInventory)
-        </dd>
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.StockQuantity)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.StockQuantity)
-        </dd>
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.ReorderLevel)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.ReorderLevel)
-        </dd>
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.ImagePath)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.ImagePath)
-        </dd>
-    </dl>
-</div>
-<div>
-    <a asp-action="Edit" asp-route-id="@Model?.Id">Edit</a> |
-    <a asp-action="Index">Back to List</a>
+<div class="form-stack">
+    <div class="card border-0 shadow-sm">
+        <div class="card-header bg-transparent border-secondary py-3 d-flex justify-content-between align-items-center flex-wrap gap-2">
+            <div>
+                <h4 class="text-info mb-1"><i class="ti ti-package me-2"></i>@Model.Name</h4>
+                <p class="text-secondary small mb-0">رقم المنتج #@Model.Id</p>
+            </div>
+            <a asp-action="Index" class="btn btn-outline-secondary rounded-pill">العودة للبيع</a>
+        </div>
+        <div class="card-body p-4">
+            <section class="form-section">
+                <h5 class="form-section-title"><i class="ti ti-id"></i> بيانات المنتج</h5>
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <div class="detail-item">
+                            <div class="lbl">الباركود</div>
+                            <div>@(string.IsNullOrWhiteSpace(Model.Barcode) ? "—" : Model.Barcode)</div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="detail-item">
+                            <div class="lbl">وحدة البيع</div>
+                            <div>@(Model.Unit == "Kilo" ? "كيلو" : "قطعة")</div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+            <section class="form-section">
+                <h5 class="form-section-title"><i class="ti ti-cash"></i> الأسعار والضريبة</h5>
+                <div class="row g-3">
+                    <div class="col-md-4">
+                        <div class="detail-item">
+                            <div class="lbl">سعر البيع</div>
+                            <div class="app-money fw-bold">@Model.SalePrice.ToString("N2") ج.م</div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="detail-item">
+                            <div class="lbl">سعر الشراء</div>
+                            <div>@Model.CostPrice.ToString("N2") ج.م</div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="detail-item">
+                            <div class="lbl">نسبة الضريبة</div>
+                            @{
+                                var settings = ViewData["StoreSettings"] as StoreSettings ?? new StoreSettings();
+                                var effective = StoreSettingsService.EffectiveTaxRate(Model, settings);
+                            }
+                            @if (!settings.TaxEnabled)
+                            {
+                                <div>متوقفة من إعدادات النظام</div>
+                            }
+                            else if (Model.UseCustomTax)
+                            {
+                                <div>مخصصة @Model.TaxRate.ToString("N2")%</div>
+                            }
+                            else
+                            {
+                                <div>النسبة العامة @effective.ToString("N2")%</div>
+                            }
+                        </div>
+                    </div>
+                </div>
+            </section>
+            <section class="form-section">
+                <h5 class="form-section-title"><i class="ti ti-packages"></i> المخزون</h5>
+                <div class="row g-3">
+                    <div class="col-md-4">
+                        <div class="detail-item">
+                            <div class="lbl">تتبع المخزون</div>
+                            <div>@(Model.TrackInventory ? "مفعّل" : "غير مفعّل")</div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="detail-item">
+                            <div class="lbl">الكمية الحالية</div>
+                            <div>@Model.StockQuantity.ToString(Model.Unit == "Kilo" ? "N3" : "N0")</div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="detail-item">
+                            <div class="lbl">حد إعادة الطلب</div>
+                            <div>@Model.ReorderLevel</div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+            <div class="d-flex gap-2">
+                <a asp-action="Edit" asp-route-id="@Model.Id" class="btn btn-primary rounded-pill px-4">تعديل</a>
+                <a asp-action="ProductHistory" asp-route-id="@Model.Id" class="btn btn-outline-secondary rounded-pill px-4">سجل الحركة</a>
+            </div>
+        </div>
+    </div>
 </div>

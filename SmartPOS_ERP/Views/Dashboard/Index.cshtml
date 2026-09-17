@@ -1,0 +1,520 @@
+@model SmartPOS_ERP.Models.DashboardViewModel
+@using System.Text.Encodings.Web
+@using System.Text.Json
+@{
+    ViewData["Title"] = "لوحة التحكم";
+    var chartsJson = JsonSerializer.Serialize(new
+    {
+        months = Model.MonthlySales,
+        top = Model.TopProducts,
+        hours = Model.HourlySales,
+        invoiceCount = Model.MonthInvoiceCount,
+        invoiceAmount = Model.MonthSales,
+        returnCount = Model.MonthReturnCount,
+        returnAmount = Model.MonthReturnAmount
+    }, new JsonSerializerOptions
+    {
+        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+        Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping
+    });
+    var profitClass = Model.MonthProfit < 0 ? "text-danger" : "text-success";
+    var payablesClass = Model.SupplierPayables > 0 ? "text-warning" : "";
+    var receivablesClass = Model.CustomerReceivables > 0 ? "text-warning" : "";
+    var yearSales = Model.YearSales;
+    var yearExpenses = Model.YearExpenses;
+    var yearPurchases = Model.YearPurchases;
+    var yearNet = Model.YearOperatingNet;
+    string? CountChange(int current, int previous)
+    {
+        if (previous <= 0) return current == 0 ? "0%" : null;
+        var pct = (current - previous) * 100m / previous;
+        return Math.Abs(pct).ToString("N1") + "%" + (pct >= 0 ? "+" : "-");
+    }
+    var invoiceChange = CountChange(Model.MonthInvoiceCount, Model.PrevMonthInvoiceCount);
+    var purchaseChange = CountChange(Model.MonthPurchaseCount, Model.PrevMonthPurchaseCount);
+    var today = DateTime.Today;
+    var monthStart = new DateTime(today.Year, today.Month, 1);
+    var monthEnd = monthStart.AddMonths(1).AddDays(-1);
+    var canExpenses = AppPermissions.Has(User, AppPermissions.Expenses);
+    var canPurchases = AppPermissions.Has(User, AppPermissions.Purchases);
+    var canProducts = AppPermissions.Has(User, AppPermissions.Products);
+}
+
+<div class="dash-page">
+<div class="page-head">
+    <div>
+        <h3 class="page-title"><i class="ti ti-layout-dashboard"></i> لوحة التحكم <help-tip>ملخص سريع لمبيعات اليوم والشهر، الربح، الصندوق، والمخزون. الأرقام هنا للعرض فقط ولا تُسجّل بيعاً جديداً.</help-tip></h3>
+        <p class="page-sub">ملخص المبيعات والمخزون ومستحقات الموردين في شاشة واحدة.</p>
+    </div>
+</div>
+
+<div class="dash-kpis">
+    <div class="stat-card stat-card-clickable">
+        <a class="stat-card-hit" asp-controller="Reports" asp-action="Index" asp-route-period="day" asp-route-selectedDate="@today.ToString("yyyy-MM-dd")" aria-label="تقرير مبيعات اليوم"></a>
+        <div class="stat-label"><i class="ti ti-cash"></i> مبيعات اليوم <help-tip>إجمالي فواتير البيع المسجّلة اليوم بعد خصم المرتجعات، شاملة الضريبة إن وُجدت. اضغط البطاقة لفتح تقرير اليوم.</help-tip></div>
+        <p class="stat-value app-money">@Model.TodaySales.ToString("N2") ج.م</p>
+    </div>
+    <div class="stat-card stat-card-clickable">
+        <a class="stat-card-hit" asp-controller="Reports" asp-action="Index" asp-route-period="month" asp-route-selectedMonth="@today.Month" asp-route-selectedYear="@today.Year" aria-label="تقرير مبيعات الشهر"></a>
+        <div class="stat-label"><i class="ti ti-calendar-month"></i> مبيعات الشهر <help-tip>مجموع صافي المبيعات من أول الشهر الحالي حتى الآن. اضغط البطاقة لفتح تقرير الشهر.</help-tip></div>
+        <p class="stat-value app-money">@Model.MonthSales.ToString("N2") ج.م</p>
+    </div>
+    <div class="stat-card stat-card-clickable">
+        <a class="stat-card-hit" asp-controller="Reports" asp-action="Index" asp-route-period="month" asp-route-selectedMonth="@today.Month" asp-route-selectedYear="@today.Year" aria-label="تقرير ربح الشهر"></a>
+        <div class="stat-label"><i class="ti ti-chart-line"></i> ربح الشهر <help-tip>صافي الربح = صافي المبيعات − تكلفة البضاعة المباعة − مصروفات الشهر. اضغط البطاقة لفتح تقرير الأرباح.</help-tip></div>
+        <p class="stat-value app-money @profitClass">@Model.MonthProfit.ToString("N2") ج.م</p>
+    </div>
+    <div class="stat-card @(canPurchases ? "stat-card-clickable" : null)">
+        @if (canPurchases)
+        {
+            <a class="stat-card-hit" asp-controller="Purchases" asp-action="Suppliers" asp-route-status="due" aria-label="مستحقات الموردين"></a>
+        }
+        <div class="stat-label"><i class="ti ti-truck"></i> مستحقات الموردين <help-tip>ما تبقى عليك للموردين: التوريد ناقص المدفوعات ومرتجعات التوريد.@(canPurchases ? " اضغط البطاقة لفتح دليل الموردين عليهم رصيد." : "")</help-tip></div>
+        <p class="stat-value app-money @payablesClass">@Model.SupplierPayables.ToString("N2") ج.م</p>
+    </div>
+    <div class="stat-card stat-card-clickable">
+        <a class="stat-card-hit" asp-controller="Customers" asp-action="Index" aria-label="مستحقات العملاء"></a>
+        <div class="stat-label"><i class="ti ti-users"></i> مستحقات العملاء <help-tip>ما لم يُحصَّل بعد من فواتير الآجل المفتوحة. اضغط البطاقة لفتح دليل العملاء.</help-tip></div>
+        <p class="stat-value app-money @receivablesClass">@Model.CustomerReceivables.ToString("N2") ج.م</p>
+    </div>
+    <div class="stat-card @(canExpenses ? "stat-card-clickable" : null)">
+        @if (canExpenses)
+        {
+            <a class="stat-card-hit" asp-controller="Expenses" asp-action="Index" asp-route-period="month" asp-route-selectedMonth="@today.Month" asp-route-selectedYear="@today.Year" aria-label="تقرير مصروفات الشهر"></a>
+        }
+        <div class="stat-label"><i class="ti ti-wallet"></i> مصروفات الشهر <help-tip>إيجار، كهرباء، نقل، وأي مصروف تشغيلي سجّلته هذا الشهر. ليست فواتير التوريد.@(canExpenses ? " اضغط البطاقة لفتح تقرير المصروفات." : "")</help-tip></div>
+        <p class="stat-value app-money">@Model.MonthExpenses.ToString("N2") ج.م</p>
+    </div>
+    <div class="stat-card stat-card-clickable">
+        <a class="stat-card-hit" asp-controller="Order" asp-action="Index" asp-route-from="@monthStart.ToString("yyyy-MM-dd")" asp-route-to="@monthEnd.ToString("yyyy-MM-dd")" aria-label="فواتير البيع لهذا الشهر"></a>
+        <div class="stat-label">الفواتير <help-tip>عدد فواتير البيع خلال الشهر الحالي. اضغط البطاقة لفتح سجل الفواتير لهذه الفترة.</help-tip></div>
+        <p class="stat-value">@Model.MonthInvoiceCount</p>
+        @if (invoiceChange != null)
+        {
+            <div class="dash-extra-delta @(invoiceChange.EndsWith("-") ? "text-danger" : "text-success")">@invoiceChange</div>
+        }
+    </div>
+    <div class="stat-card @(canPurchases ? "stat-card-clickable" : null)">
+        @if (canPurchases)
+        {
+            <a class="stat-card-hit" asp-controller="Purchases" asp-action="Index" asp-route-period="month" asp-route-selectedMonth="@today.Month" asp-route-selectedYear="@today.Year" aria-label="فواتير التوريد لهذا الشهر"></a>
+        }
+        <div class="stat-label">المشتريات <help-tip>عدد فواتير التوريد (شراء البضاعة) خلال الشهر الحالي.@(canPurchases ? " اضغط البطاقة لفتح تقرير فواتير التوريد." : "")</help-tip></div>
+        <p class="stat-value text-warning">@Model.MonthPurchaseCount</p>
+        @if (purchaseChange != null)
+        {
+            <div class="dash-extra-delta @(purchaseChange.EndsWith("-") ? "text-danger" : "text-success")">@purchaseChange</div>
+        }
+    </div>
+    <div class="stat-card @(canProducts ? "stat-card-clickable" : null)">
+        @if (canProducts)
+        {
+            <a class="stat-card-hit" asp-controller="Inventory" asp-action="Index" aria-label="تقرير قيمة المخزون"></a>
+        }
+        <div class="stat-label">قيمة المخزون <help-tip>تقدير قيمة البضاعة الموجودة الآن بسعر التكلفة (سعر الشراء المتوسط) وليس سعر البيع.@(canProducts ? " اضغط البطاقة لفتح جرد المخزن." : "")</help-tip></div>
+        <p class="stat-value text-warning">@Model.StockValue.ToString("N2")</p>
+    </div>
+    <div class="stat-card stat-card-clickable">
+        <a class="stat-card-hit" asp-controller="Shifts" asp-action="Index" aria-label="الورديات ورصيد الصندوق"></a>
+        <div class="stat-label">رصيد الصندوق <help-tip>النقد المتوقع في الدرج: عهدة فتح الوردية + المبيعات النقدية − مرتجعات النقد. اضغط البطاقة لفتح الورديات.</help-tip></div>
+        <p class="stat-value dash-extra-cash">@Model.CashBalance.ToString("N2")</p>
+        <div class="stat-hint">@(Model.OpenShiftCount == 0 ? "لا توجد وردية مفتوحة" : $"{Model.OpenShiftCount} وردية مفتوحة")</div>
+    </div>
+    <div class="stat-card stat-card-clickable">
+        <a class="stat-card-hit" asp-controller="Reports" asp-action="LowStockReport" aria-label="فتح تقرير نواقص المخزن"></a>
+        <div class="stat-label">أصناف منخفضة <help-tip>عدد الأصناف التي وصلت لحد إعادة الطلب أو نفدت. اضغط البطاقة لفتح تقرير النواقص.</help-tip></div>
+        <p class="stat-value @(Model.LowStockCount > 0 ? "text-danger" : "")">@Model.LowStockCount</p>
+    </div>
+    <div class="stat-card stat-card-clickable">
+        <a class="stat-card-hit" asp-controller="Reports" asp-action="ExpiryReport" aria-label="تقرير صلاحية الأصناف"></a>
+        <div class="stat-label">قربت صلاحيتها <help-tip>أصناف منتهية أو تنتهي خلال 7 أيام. اضغط البطاقة لفتح تقرير الصلاحية.</help-tip></div>
+        <p class="stat-value @(Model.ExpiringCount > 0 ? "text-danger" : "")">@Model.ExpiringCount</p>
+    </div>
+</div>
+
+<div class="dash-chart-card dash-analysis-card">
+    <div class="dash-analysis-head">
+        <h5 class="dash-analysis-title">تحليل المبيعات <help-tip>مقارنة على مدار السنة: المبيعات مقابل المشتريات والمصروفات لمعرفة اتجاه النشاط.</help-tip></h5>
+        <p class="page-sub mb-0">مقارنة المبيعات الشهرية بالمصروفات والمشتريات</p>
+    </div>
+    <div class="dash-analysis-kpis">
+        <div class="dash-mini-kpi">
+            <div class="stat-label">اجمالي المبيعات <help-tip>مجموع مبيعات السنة الحالية حتى اليوم.</help-tip></div>
+            <p class="stat-value">@yearSales.ToString("N2")</p>
+        </div>
+        <div class="dash-mini-kpi">
+            <div class="stat-label">المشتريات <help-tip>قيمة فواتير التوريد خلال السنة الحالية.</help-tip></div>
+            <p class="stat-value text-warning">@yearPurchases.ToString("N2")</p>
+        </div>
+        <div class="dash-mini-kpi">
+            <div class="stat-label">المصروفات <help-tip>المصروفات التشغيلية المسجّلة خلال السنة الحالية، بدون تكلفة البضاعة.</help-tip></div>
+            <p class="stat-value text-danger">@yearExpenses.ToString("N2")</p>
+        </div>
+        <div class="dash-mini-kpi">
+            <div class="stat-label">صافي تقريبي <help-tip>المبيعات السنوية ناقص المشتريات والمصروفات. تقريبي لأنه لا يخصم تكلفة كل صنف مباع بالتفصيل هنا.</help-tip></div>
+            <p class="stat-value @(yearNet < 0 ? "text-danger" : "")">@yearNet.ToString("N2")</p>
+        </div>
+    </div>
+    <div class="dash-chart-wrap dash-chart-wrap-lg"><canvas id="dashMonthsChart"></canvas></div>
+</div>
+
+<div class="dash-charts-row">
+    <div class="dash-chart-card">
+        <h5 class="dash-chart-title"><i class="ti ti-clock-hour-4"></i> أفضل ساعات البيع (30 يوم) <help-tip>الساعات التي سجّلت أعلى مبيعات خلال آخر 30 يوماً، لتوزيع الورديات والعروض.</help-tip></h5>
+        <div class="dash-chart-wrap"><canvas id="dashHoursChart"></canvas></div>
+    </div>
+    <div class="dash-chart-card">
+        <h5 class="dash-chart-title"><i class="ti ti-chart-donut"></i> أفضل الأصناف <help-tip>الأصناف الأعلى مبيعاً من حيث القيمة خلال الفترة المعروضة على اللوحة.</help-tip></h5>
+        @if (Model.TopProducts.Count == 0)
+        {
+            <p class="empty-cell mb-0">لا توجد مبيعات بعد.</p>
+        }
+        else
+        {
+            <div class="dash-chart-wrap"><canvas id="dashTopChart"></canvas></div>
+        }
+    </div>
+    <div class="dash-chart-card">
+        <h5 class="dash-chart-title"><i class="ti ti-arrows-exchange"></i> فواتير الشهر مقابل المرتجعات <help-tip>كم فاتورة بيع تمت هذا الشهر مقابل كم مرتجع، مع قيمتها.</help-tip></h5>
+        @if (Model.MonthInvoiceCount == 0 && Model.MonthReturnCount == 0)
+        {
+            <p class="empty-cell mb-0">لا توجد حركة هذا الشهر.</p>
+        }
+        else
+        {
+            <div class="dash-chart-wrap"><canvas id="dashMixChart"></canvas></div>
+            <div class="stat-hint mt-2">مبيعات @Model.MonthSales.ToString("N2") ج.م · مرتجعات @Model.MonthReturnAmount.ToString("N2") ج.م</div>
+        }
+    </div>
+</div>
+
+<div class="dash-tables">
+    <div class="card table-card border-0 shadow-sm">
+        <div class="card-header">آخر الفواتير</div>
+        <div class="table-responsive">
+            <table class="table table-hover mb-0 align-middle">
+                <thead>
+                    <tr>
+                        <th>رقم</th>
+                        <th>التاريخ</th>
+                        <th>الإجمالي</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (Model.RecentInvoices.Count == 0)
+                    {
+                        <tr><td colspan="3" class="empty-cell">لا توجد فواتير بعد.</td></tr>
+                    }
+                    @foreach (var invoice in Model.RecentInvoices)
+                    {
+                        <tr>
+                            <td>
+                                <a asp-controller="Order" asp-action="OrderDetails" asp-route-id="@invoice.Id">#@invoice.Id</a>
+                            </td>
+                            <td>@invoice.Date.ToString("yyyy-MM-dd HH:mm")</td>
+                            <td class="app-money">@invoice.Total.ToString("N2") ج.م</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+    <div class="card table-card border-0 shadow-sm">
+        <div class="card-header">
+            <a asp-controller="Reports" asp-action="LowStockReport">نواقص المخزن</a>
+            <help-tip>أصناف كميتها وصلت لحد إعادة الطلب أو أقل. اضغط العنوان لفتح التقرير الكامل.</help-tip>
+        </div>
+        <div class="table-responsive">
+            <table class="table table-hover mb-0 align-middle">
+                <thead>
+                    <tr>
+                        <th>الصنف</th>
+                        <th>المخزون</th>
+                        <th>حد الطلب</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (Model.LowStock.Count == 0)
+                    {
+                        <tr><td colspan="3" class="empty-cell">المخزون ضمن الحد الآمن.</td></tr>
+                    }
+                    @foreach (var item in Model.LowStock)
+                    {
+                        <tr>
+                            <td>
+                                <a asp-controller="Products" asp-action="Edit" asp-route-id="@item.Id">@item.Name</a>
+                            </td>
+                            <td>@item.Stock.ToString("N2") @item.Unit</td>
+                            <td>@item.ReorderLevel</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+    <div class="card table-card border-0 shadow-sm">
+        <div class="card-header">أفضل الأصناف</div>
+        <div class="table-responsive">
+            <table class="table table-hover mb-0 align-middle">
+                <thead>
+                    <tr>
+                        <th>الصنف</th>
+                        <th>الكمية</th>
+                        <th>القيمة</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (Model.TopProducts.Count == 0)
+                    {
+                        <tr><td colspan="3" class="empty-cell">لا توجد مبيعات بعد.</td></tr>
+                    }
+                    @foreach (var item in Model.TopProducts)
+                    {
+                        <tr>
+                            <td>@item.Name</td>
+                            <td>@item.Quantity.ToString("N2")</td>
+                            <td class="app-money">@item.Sales.ToString("N2") ج.م</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+</div>
+
+@section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+    <script>
+        (function () {
+            const data = @Html.Raw(chartsJson);
+            const monthNames = ['يناير', 'فبراير', 'مارس', 'أبريل', 'مايو', 'يونيو', 'يوليو', 'أغسطس', 'سبتمبر', 'أكتوبر', 'نوفمبر', 'ديسمبر'];
+            const charts = [];
+
+            function themeColors() {
+                const s = getComputedStyle(document.documentElement);
+                return {
+                    primary: s.getPropertyValue('--app-primary').trim(),
+                    success: s.getPropertyValue('--app-success').trim(),
+                    warn: s.getPropertyValue('--app-warn').trim(),
+                    danger: s.getPropertyValue('--app-danger').trim(),
+                    text: s.getPropertyValue('--app-text').trim(),
+                    muted: s.getPropertyValue('--app-muted').trim(),
+                    line: s.getPropertyValue('--app-line').trim(),
+                    soft: s.getPropertyValue('--app-primary-soft').trim(),
+                    card: s.getPropertyValue('--app-card').trim()
+                };
+            }
+
+            function monthName(ym) {
+                const parts = String(ym).split('-');
+                const month = Number(parts[1]);
+                return monthNames[month - 1] || ym;
+            }
+
+            function withAlpha(color, alpha) {
+                const hex = String(color).replace('#', '').trim();
+                if (hex.length === 6 && /^[0-9a-fA-F]+$/.test(hex)) {
+                    const n = parseInt(hex, 16);
+                    return `rgba(${(n >> 16) & 255}, ${(n >> 8) & 255}, ${n & 255}, ${alpha})`;
+                }
+                return color;
+            }
+
+            function money(value) {
+                return Number(value || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+            }
+
+            function render() {
+                charts.splice(0).forEach(c => c.destroy());
+                const c = themeColors();
+                const tick = { color: c.muted, font: { family: 'Cairo' } };
+                const grid = { color: c.line };
+                const legend = { position: 'bottom', rtl: true, labels: { color: c.text, font: { family: 'Cairo' } } };
+
+                const monthsEl = document.getElementById('dashMonthsChart');
+                if (monthsEl) {
+                    charts.push(new Chart(monthsEl, {
+                        type: 'line',
+                        data: {
+                            labels: data.months.map(x => monthName(x.label)),
+                            datasets: [
+                                {
+                                    label: 'فاتورة بيع',
+                                    data: data.months.map(x => x.total),
+                                    borderColor: c.primary,
+                                    backgroundColor: withAlpha(c.primary, 0.18),
+                                    fill: true,
+                                    tension: 0.4,
+                                    pointRadius: 5,
+                                    pointHoverRadius: 7,
+                                    pointBackgroundColor: c.primary,
+                                    borderWidth: 3
+                                },
+                                {
+                                    label: 'المصروفات',
+                                    data: data.months.map(x => x.expenses),
+                                    borderColor: c.muted,
+                                    backgroundColor: 'transparent',
+                                    borderDash: [7, 5],
+                                    fill: false,
+                                    tension: 0.4,
+                                    pointRadius: 0,
+                                    pointHoverRadius: 5,
+                                    borderWidth: 2
+                                },
+                                {
+                                    label: 'المشتريات',
+                                    data: data.months.map(x => x.purchases),
+                                    borderColor: c.success,
+                                    backgroundColor: 'transparent',
+                                    borderDash: [7, 5],
+                                    fill: false,
+                                    tension: 0.4,
+                                    pointRadius: 0,
+                                    pointHoverRadius: 5,
+                                    borderWidth: 2
+                                }
+                            ]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            interaction: { mode: 'index', intersect: false },
+                            plugins: {
+                                legend: {
+                                    position: 'top',
+                                    align: 'end',
+                                    rtl: true,
+                                    labels: {
+                                        color: c.text,
+                                        font: { family: 'Cairo', size: 12 },
+                                        usePointStyle: true,
+                                        pointStyle: 'circle',
+                                        padding: 16
+                                    }
+                                },
+                                tooltip: {
+                                    rtl: true,
+                                    backgroundColor: c.card || '#fff',
+                                    titleColor: c.text,
+                                    bodyColor: c.text,
+                                    borderColor: c.line,
+                                    borderWidth: 1,
+                                    titleFont: { family: 'Cairo', weight: '700' },
+                                    bodyFont: { family: 'Cairo' },
+                                    callbacks: {
+                                        label: (item) => `${item.dataset.label}: ${money(item.raw)}`
+                                    }
+                                }
+                            },
+                            scales: {
+                                x: {
+                                    reverse: true,
+                                    ticks: tick,
+                                    grid: { display: false },
+                                    border: { display: false }
+                                },
+                                y: {
+                                    beginAtZero: true,
+                                    position: 'left',
+                                    ticks: tick,
+                                    grid: { color: c.line, drawBorder: false },
+                                    border: { display: false }
+                                }
+                            }
+                        }
+                    }));
+                }
+
+                const topEl = document.getElementById('dashTopChart');
+                if (topEl && data.top.length) {
+                    const palette = [c.primary, c.success, c.warn, c.danger, c.muted];
+                    charts.push(new Chart(topEl, {
+                        type: 'doughnut',
+                        data: {
+                            labels: data.top.map(x => x.name),
+                            datasets: [{
+                                data: data.top.map(x => x.quantity),
+                                backgroundColor: palette.slice(0, data.top.length),
+                                borderWidth: 0
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            plugins: { legend: legend }
+                        }
+                    }));
+                }
+
+                const hoursEl = document.getElementById('dashHoursChart');
+                if (hoursEl) {
+                    charts.push(new Chart(hoursEl, {
+                        type: 'line',
+                        data: {
+                            labels: data.hours.map(x => String(x.hour).padStart(2, '0') + ':00'),
+                            datasets: [{
+                                label: 'المبيعات',
+                                data: data.hours.map(x => x.total),
+                                borderColor: c.success,
+                                backgroundColor: withAlpha(c.success, 0.18),
+                                fill: true,
+                                tension: 0.4,
+                                pointRadius: 3,
+                                pointHoverRadius: 6,
+                                pointBackgroundColor: c.success,
+                                borderWidth: 3
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            interaction: { mode: 'index', intersect: false },
+                            plugins: { legend: { display: false } },
+                            scales: {
+                                x: {
+                                    ticks: { ...tick, maxRotation: 0, autoSkip: true, maxTicksLimit: 12 },
+                                    grid: { display: false },
+                                    border: { display: false }
+                                },
+                                y: {
+                                    beginAtZero: true,
+                                    ticks: tick,
+                                    grid: { color: c.line, drawBorder: false },
+                                    border: { display: false }
+                                }
+                            }
+                        }
+                    }));
+                }
+
+                const mixEl = document.getElementById('dashMixChart');
+                if (mixEl && (data.invoiceCount || data.returnCount)) {
+                    charts.push(new Chart(mixEl, {
+                        type: 'doughnut',
+                        data: {
+                            labels: ['فواتير البيع', 'المرتجعات'],
+                            datasets: [{
+                                data: [data.invoiceCount, data.returnCount],
+                                backgroundColor: [c.primary, c.danger],
+                                borderWidth: 0
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            plugins: { legend: legend }
+                        }
+                    }));
+                }
+            }
+
+            render();
+            new MutationObserver(render).observe(document.documentElement, {
+                attributes: true,
+                attributeFilter: ['data-theme']
+            });
+        })();
+    </script>
+}

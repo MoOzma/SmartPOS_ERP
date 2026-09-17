@@ -1,0 +1,57 @@
+@model SmartPOS_ERP.Models.PurchaseInvoice
+@{
+    ViewData["Title"] = $"مرتجع توريد #{Model.Id}";
+    var remaining = ViewBag.Remaining as Dictionary<int, decimal> ?? [];
+}
+
+<div class="form-stack">
+    @if (TempData["Error"] is string error)
+    {
+        <div class="alert alert-danger">@error</div>
+    }
+    <div class="page-head">
+        <div>
+            <h3 class="page-title"><i class="ti ti-package-export"></i> مرتجع توريد #@Model.Id <help-tip>يرجع كمية للمورد: ينقص المخزون وينقص مديونية المورد بنفس قيمة التكلفة. ليس إلغاء للفاتورة كلها.</help-tip></h3>
+            <p class="page-sub">المورد: @Model.Supplier?.Name — حدد الكمية المرتجعة لكل صنف.</p>
+        </div>
+    </div>
+
+    <form asp-action="ReturnPurchase" asp-route-id="@Model.Id" method="post" class="form-section">
+        <div class="table-responsive mb-3">
+            <table class="table table-hover mb-0 align-middle">
+                <thead>
+                    <tr>
+                        <th>الصنف</th>
+                        <th>المورَّد</th>
+                        <th>المتبقي للمرتجع</th>
+                        <th>كمية المرتجع</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @for (var i = 0; i < Model.Details.Count; i++)
+                    {
+                        var detail = Model.Details[i];
+                        remaining.TryGetValue(detail.Id, out var left);
+                        <tr>
+                            <td class="fw-bold">@detail.Product?.Name</td>
+                            <td>@detail.TotalUnits.ToString("N3")</td>
+                            <td>@left.ToString("N3")</td>
+                            <td>
+                                <input type="hidden" name="Lines[@i].PurchaseDetailId" value="@detail.Id" />
+                                <input type="number" name="Lines[@i].Quantity" class="form-control" min="0" max="@left" step="0.001" value="0" @(left <= 0 ? "disabled" : null) />
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+        <div class="mb-3">
+            <label class="form-label" for="Notes">ملاحظات</label>
+            <input type="text" id="Notes" name="Notes" class="form-control" maxlength="200" />
+        </div>
+        <div class="d-flex gap-2">
+            <button type="submit" class="btn btn-primary rounded-pill px-4">حفظ المرتجع</button>
+            <a asp-action="Details" asp-route-id="@Model.Id" class="btn btn-outline-secondary rounded-pill px-4">إلغاء</a>
+        </div>
+    </form>
+</div>
